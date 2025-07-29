@@ -577,9 +577,9 @@ const Pedidos = () => {
                                     <Option
                                         key={client._id}
                                         value={client._id}
-                                        label={`${client.name} - ${client.phone}`} // 💡 Usamos label para filtro
+                                        label={`${client.address} - ${client.phone}`} // 💡 Usamos label para filtro
                                     >
-                                        {client.name} - {client.phone}
+                                        {client.address} - {client.phone}
                                     </Option>
                                 ))}
                             </Select>
