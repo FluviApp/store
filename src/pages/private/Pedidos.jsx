@@ -665,10 +665,12 @@ const Pedidos = () => {
                                     <Option
                                         key={product._id}
                                         value={product._id}
-                                        label={product.name}
+                                        label={`${product.name} - $${product.priceBase}${product.priceDiscount ? ` (desc: $${product.priceDiscount})` : ''}`}
                                     >
-                                        {product.name} - ${product.priceDiscount ?? product.priceBase}
+                                        {`${product.name} - $${product.priceBase}` +
+                                            (product.priceDiscount ? ` (desc: $${product.priceDiscount})` : '')}
                                     </Option>
+
                                 ))}
                             </Select>
                         </Form.Item>
