@@ -378,7 +378,10 @@ const Pedidos = () => {
     const handleAddProduct = (product) => {
         const exists = selectedProducts.find(p => p.productId === product._id);
         if (!exists) {
-            const unitPrice = product.priceDiscount ?? product.priceBase ?? 0;
+            const unitPrice = (product.priceDiscount && product.priceDiscount > 0)
+                ? product.priceDiscount
+                : product.priceBase ?? 0;
+
 
             setSelectedProducts(prev => [
                 ...prev,
