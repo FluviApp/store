@@ -18,7 +18,7 @@ const BannersPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const isMobile = useMediaQuery({ maxWidth: 768 });
-    const BACKEND_URL = 'http://localhost:5001';
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
     const { data: bannersData, refetch, isLoading } = useBanners();
     const banners = bannersData?.data || [];

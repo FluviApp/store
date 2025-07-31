@@ -29,7 +29,7 @@ const Productos = () => {
 
     const navigate = useNavigate();
     const isMobile = useMediaQuery({ maxWidth: 768 });
-    const BACKEND_URL = 'http://localhost:5001';
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
     const [searchText, setSearchText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);

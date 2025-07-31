@@ -42,7 +42,8 @@ const Subcategorias = () => {
     const isMobile = useMediaQuery({ maxWidth: 768 });
     const [page, setPage] = useState(1);
     const [limit] = useState(10);
-    const BACKEND_URL = 'http://localhost:5001';
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
     const { data: subcategoryData, isLoading, refetch: refetchSubcategories } = useSubcategories({
         storeId: user.storeId,
         categoryId,

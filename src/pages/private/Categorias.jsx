@@ -52,7 +52,7 @@ const Categorias = () => {
     const [formProduct] = Form.useForm();
     const [hasVariants, setHasVariants] = useState(false);
 
-    const BACKEND_URL = 'http://localhost:5001';
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     const [variantAttributes, setVariantAttributes] = useState([]);
     const [variantImageLists, setVariantImageLists] = useState({});
     const [hasVariantsLocked, setHasVariantsLocked] = useState(false);
