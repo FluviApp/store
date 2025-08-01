@@ -18,7 +18,6 @@ const ModalEditProductWithVariants = ({
     setVariantAttributes,
     variantImageLists,
     setVariantImageLists,
-    BACKEND_URL,
     removedVariantImages,
     setRemovedVariantImages,
     editingItem,
@@ -121,8 +120,9 @@ const ModalEditProductWithVariants = ({
 
                                                     if (variantToRemove?._id && variantImages?.length) {
                                                         const paths = variantImages
-                                                            .filter(img => img.url?.startsWith(BACKEND_URL))
-                                                            .map(img => img.url.replace(BACKEND_URL, ''));
+                                                            .filter(img => img.url)
+                                                            .map(img => img.url);
+
 
                                                         console.log('🧾 Rutas detectadas para eliminar:', paths);
 
@@ -283,13 +283,13 @@ const ModalEditProductWithVariants = ({
                                                         const variant = form.getFieldValue('variants')?.[key];
                                                         const variantId = variant?._id; // ✅ Usamos el _id real
 
-                                                        if (file.url?.startsWith(BACKEND_URL) && variantId) {
-                                                            const relativePath = file.url.replace(BACKEND_URL, '');
+                                                        if (file.url && variantId) {
                                                             setRemovedVariantImages(prev => ({
                                                                 ...prev,
-                                                                [variantId]: [...(prev[variantId] || []), relativePath]
+                                                                [variantId]: [...(prev[variantId] || []), file.url]
                                                             }));
                                                         }
+
 
                                                         const updatedList = currentList.filter(f => f.uid !== file.uid);
 
@@ -349,13 +349,13 @@ const ModalEditProductWithVariants = ({
                                                                         const variantId = variant?._id;
 
                                                                         const oldUrl = file.url;
-                                                                        if (oldUrl?.startsWith(BACKEND_URL) && variantId) {
-                                                                            const relativePath = oldUrl.replace(BACKEND_URL, '');
+                                                                        if (oldUrl && variantId) {
                                                                             setRemovedVariantImages(prev => ({
                                                                                 ...prev,
-                                                                                [variantId]: [...(prev[variantId] || []), relativePath]
+                                                                                [variantId]: [...(prev[variantId] || []), oldUrl]
                                                                             }));
                                                                         }
+
 
                                                                         setVariantImageLists(prev => ({
                                                                             ...prev,

@@ -89,7 +89,7 @@ const Paquetes = () => {
                     uid: `existing-${item._id}`,
                     name: item.image.split('/').pop(),
                     status: 'done',
-                    url: `http://localhost:5001${item.image}`,
+                    url: item.image,
                 });
             }
         } else {

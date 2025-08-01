@@ -67,7 +67,7 @@ const BannersPage = () => {
             uid: `existing-${item._id}`,
             name: item.image.split('/').pop(),
             status: 'done',
-            url: `${BACKEND_URL}${item.image}`,
+            url: item.image
         });
         setEditingItem(item);
         setIsEditModalVisible(true);
@@ -198,7 +198,7 @@ const BannersPage = () => {
                         <div className="grid gap-4">
                             {filteredBanners.map(banner => (
                                 <Card key={banner._id} title={banner.name} bordered>
-                                    <img src={`${BACKEND_URL}${banner.image}`} alt={banner.name} style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />
+                                    <img src={banner.image} alt={banner.name} style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />
                                     <p className="mt-2 text-blue-600">{banner.link}</p>
                                     <Space wrap>
                                         <Button icon={<EditOutlined />} onClick={() => openEditModal(banner)}>Editar</Button>

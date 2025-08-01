@@ -233,7 +233,8 @@ const Categorias = () => {
                 uid: `existing-${category._id}`,
                 name: category.image.split('/').pop(),
                 status: 'done',
-                url: `${BACKEND_URL}${category.image}`
+                url: category.image
+
             }
             : null;
 
@@ -368,7 +369,8 @@ const Categorias = () => {
                 uid: `img-${index}`,
                 name: url.split('/').pop(),
                 status: 'done',
-                url: `${BACKEND_URL}${url}`,
+                url: url,
+
             }));
             setImageFile(files);
         } else {

@@ -11,7 +11,6 @@ const ModalEditProduct = ({
     setImageFile,
     validateImage,
     onRemove,
-    BACKEND_URL,
 }) => {
     return (
         <Modal
@@ -137,12 +136,12 @@ const ModalEditProduct = ({
                                                 return updated;
                                             });
 
-                                            if (oldUrl && oldUrl.startsWith(BACKEND_URL)) {
-                                                const relativePath = oldUrl.replace(BACKEND_URL, '');
-                                                onRemove?.({ url: relativePath });
+                                            if (oldUrl) {
+                                                onRemove?.({ url: oldUrl }); // ✅ sin BACKEND_URL
                                             }
                                         }}
                                     />
+
                                 </div>
                             );
                         }}

@@ -29,7 +29,6 @@ const Productos = () => {
 
     const navigate = useNavigate();
     const isMobile = useMediaQuery({ maxWidth: 768 });
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
     const [searchText, setSearchText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -276,7 +275,7 @@ const Productos = () => {
                 uid: `img-${index}`,
                 name: url.split('/').pop(),
                 status: 'done',
-                url: `${BACKEND_URL}${url}`,
+                url: url,
             }));
             setImageFile(files);
         } else {
@@ -679,7 +678,7 @@ const Productos = () => {
                     setImageFile={setImageFile}
                     validateImage={validateProductImageSize}
                     onRemove={(file) => {
-                        const filePath = file.url?.replace(BACKEND_URL, '');
+                        const filePath = file.url;
                         if (filePath) {
                             setRemovedImages(prev => [...prev, filePath]);
                         }
@@ -701,7 +700,6 @@ const Productos = () => {
                     setVariantImageLists={setVariantImageLists}
                     validateImage={validateProductImageSize}
                     onSubmit={handleCreateProductWithVariants}
-                    BACKEND_URL={BACKEND_URL}
                 />
 
                 <ModalEditProductWithVariants
@@ -716,9 +714,8 @@ const Productos = () => {
                     setVariantAttributes={setVariantAttributes}
                     variantImageLists={variantImageLists}
                     setVariantImageLists={setVariantImageLists}
-                    BACKEND_URL={BACKEND_URL}
-                    removedVariantImages={removedVariantImages} // ✅ nuevo
-                    setRemovedVariantImages={setRemovedVariantImages} // ✅ nuevo
+                    removedVariantImages={removedVariantImages}
+                    setRemovedVariantImages={setRemovedVariantImages}
                     editingItem={editingItem}
                 />
                 <Modal

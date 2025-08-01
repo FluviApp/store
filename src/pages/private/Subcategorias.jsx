@@ -330,7 +330,7 @@ const Subcategorias = () => {
                 uid: `existing-${subcategory._id}`,
                 name: subcategory.image.split('/').pop(),
                 status: 'done',
-                url: `${BACKEND_URL}${subcategory.image}`,
+                url: subcategory.image,
             }
             : null;
 
@@ -432,7 +432,7 @@ const Subcategorias = () => {
                 uid: `img-${index}`,
                 name: url.split('/').pop(),
                 status: 'done',
-                url: `${BACKEND_URL}${url}`,
+                url: url,
             }));
             setImageFile(files);
         } else {
@@ -598,7 +598,7 @@ const Subcategorias = () => {
                 uid: `img-${index}-${i}`,
                 name: imgUrl.split('/').pop(),
                 status: 'done',
-                url: `${BACKEND_URL}${imgUrl}`,
+                url: imgUrl,
             }));
         });
 
