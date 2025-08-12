@@ -1,5 +1,5 @@
 // HistorialVentasPOS.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // 'useEffect' ya no es necesario
 import Sidebar from '../../components/Sidebar.jsx';
 import {
     Table, Button, Space, Input, DatePicker, Card, Tag, Switch
@@ -27,7 +27,6 @@ const HistorialVentas = () => {
     const isMobile = useMediaQuery({ maxWidth: 768 });
     const [searchText, setSearchText] = useState('');
     const [dateRange, setDateRange] = useState([]);
-    const [dateSearchTriggered, setDateSearchTriggered] = useState(false);
     const [loadingRowId, setLoadingRowId] = useState(null);
 
     const [queryParams, setQueryParams] = useState({
@@ -37,17 +36,6 @@ const HistorialVentas = () => {
         status: null,
         transferPay: undefined,
     });
-
-
-    useEffect(() => {
-        if (dateSearchTriggered && dateRange.length === 2) {
-            setQueryParams(prev => ({
-                ...prev,
-                startDate: dayjs(dateRange[0]).startOf('day').toISOString(),
-                endDate: dayjs(dateRange[1]).endOf('day').toISOString(),
-            }));
-        }
-    }, [dateSearchTriggered, dateRange]);
 
     const handleTransferToggle = async (order) => {
         console.log('🧪 Toggle transferPay para:', order._id);
@@ -85,9 +73,19 @@ const HistorialVentas = () => {
         return `https://wa.me/56${phone}?text=${message}`;
     };
 
-
+    const handleDateSearch = () => {
+        if (dateRange.length === 2) {
+            setQueryParams(prev => ({
+                ...prev,
+                startDate: dayjs(dateRange[0]).startOf('day').toISOString(),
+                endDate: dayjs(dateRange[1]).endOf('day').toISOString(),
+            }));
+            refetch();
+        }
+    };
 
     const { data, isLoading, refetch } = useOrders(queryParams);
+    console.log(data)
     const ventas = data?.data?.docs || [];
     const pageSize = 10;
 
@@ -120,6 +118,11 @@ const HistorialVentas = () => {
         {
             title: 'Fecha',
             dataIndex: 'createdAt',
+            render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+        },
+        {
+            title: 'Fecha de Entrega',
+            dataIndex: 'deliveryDate',
             render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
         },
         {
@@ -158,7 +161,6 @@ const HistorialVentas = () => {
                 );
             }
         }
-
     ];
 
     return (
@@ -172,17 +174,12 @@ const HistorialVentas = () => {
                 <div className="mb-6 flex flex-wrap gap-4 items-center">
                     <DatePicker.RangePicker
                         format="YYYY-MM-DD"
-                        onChange={(range) => {
-                            setDateRange(range || []);
-                            setDateSearchTriggered(false);
-                        }}
+                        onChange={(range) => setDateRange(range || [])}
+                        value={dateRange}
                     />
                     <Button
                         type="primary"
-                        onClick={() => {
-                            setDateSearchTriggered(true);
-                            refetch();
-                        }}
+                        onClick={handleDateSearch}
                         disabled={dateRange.length !== 2}
                     >
                         Buscar por Fecha
@@ -252,8 +249,6 @@ const HistorialVentas = () => {
                         </Tag>
                     )}
                 </div>
-
-
 
                 <Search
                     placeholder="Buscar cliente"
