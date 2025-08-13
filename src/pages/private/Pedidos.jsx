@@ -87,7 +87,7 @@ const Pedidos = () => {
         : pedidos;
 
     const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const { data: clientsData, isLoading: isClientsLoading } = useClients({ page: 1, limit: 100 });
+    const { data: clientsData, isLoading: isClientsLoading } = useClients({ page: 1, limit: 900 });
     const clients = clientsData?.data?.docs || [];
     const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
     const [selectedOrderForStatus, setSelectedOrderForStatus] = useState(null);
@@ -553,7 +553,7 @@ const Pedidos = () => {
                         <Form.Item label="Cliente" required>
                             <Select
                                 showSearch
-                                placeholder="Buscar cliente por nombre"
+                                placeholder="Buscar cliente por dirección"
                                 optionFilterProp="label"
                                 onChange={(value) => {
                                     const client = clients.find(c => c._id === value);
@@ -580,13 +580,12 @@ const Pedidos = () => {
                                     <Option
                                         key={client._id}
                                         value={client._id}
-                                        label={`${client.address} - ${client.phone}`} // 💡 Usamos label para filtro
+                                        label={client.address} // 💡 Cambiado para filtrar solo por la dirección
                                     >
-                                        {client.address} - {client.phone}
+                                        {client.address}
                                     </Option>
                                 ))}
                             </Select>
-
                         </Form.Item>
                         {selectedCustomer && (
                             <Card
