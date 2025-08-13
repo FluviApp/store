@@ -1,5 +1,4 @@
-// HistorialVentasPOS.jsx
-import React, { useState } from 'react'; // 'useEffect' ya no es necesario
+import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import {
     Table, Button, Space, Input, DatePicker, Card, Tag, Switch
@@ -102,6 +101,13 @@ const HistorialVentas = () => {
             title: 'Teléfono',
             dataIndex: ['customer', 'phone'],
         },
+        // Nueva columna para la dirección
+        {
+            title: 'Dirección',
+            dataIndex: ['customer', 'address'],
+            // Si la dirección es larga, puedes acortarla
+            // render: (address) => (address && address.length > 30 ? `${address.substring(0, 30)}...` : address),
+        },
         {
             title: 'Total',
             dataIndex: 'finalPrice',
@@ -116,33 +122,47 @@ const HistorialVentas = () => {
             },
         },
         {
-            title: 'Fecha',
+            title: 'Fecha de Venta',
             dataIndex: 'createdAt',
             render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
         },
         {
             title: 'Fecha de Entrega',
             dataIndex: 'deliveryDate',
-            render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+            render: (date, record) => {
+                // Combina la fecha de entrega con la hora de deliverySchedule
+                const deliveryTime = record.deliverySchedule?.hour;
+                return deliveryTime ? `${dayjs(date).format('DD/MM/YYYY')} ${deliveryTime}` : dayjs(date).format('DD/MM/YYYY HH:mm');
+            },
         },
         {
             title: 'Transferencia Pagada',
             dataIndex: 'transferPay',
             render: (_, record) => {
-                const isTransfer = record.paymentMethod === 'transferencia';
-                return (
-                    <Switch
-                        checked={record.transferPay}
-                        onChange={() => {
-                            console.log('✅ Click en switch de:', record._id);
-                            handleTransferToggle(record)
-                        }}
-                        loading={loadingRowId === record._id}
-                        disabled={!isTransfer}
-                    />
-                );
-            },
+                // Renderiza el switch solo si el método de pago es transferencia.
+                if (record.paymentMethod === 'transferencia') {
+                    const isDelivered = record.status === 'entregado';
 
+                    // El switch estará marcado solo si el pago fue por transferencia Y el pedido ya fue entregado.
+                    const isTransferPaidAndDelivered = record.transferPay && isDelivered;
+
+                    return (
+                        <Switch
+                            checked={isTransferPaidAndDelivered}
+                            onChange={() => {
+                                console.log('✅ Click en switch de:', record._id);
+                                handleTransferToggle(record);
+                            }}
+                            loading={loadingRowId === record._id}
+                            // El switch se deshabilita si el pedido no ha sido entregado.
+                            disabled={!isDelivered}
+                        />
+                    );
+                }
+
+                // Para cualquier otro método de pago, no se muestra nada.
+                return null;
+            },
         },
         {
             title: 'Acciones',
@@ -264,6 +284,7 @@ const HistorialVentas = () => {
                         {filteredVentas.map(venta => (
                             <Card key={venta._id} title={venta.customer?.name || 'Sin nombre'}>
                                 <p><strong>Teléfono:</strong> {venta.customer?.phone || '—'}</p>
+                                <p><strong>Dirección:</strong> {venta.customer?.address || '—'}</p>
                                 <p><strong>Total:</strong> ${venta.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
                                 <p>
                                     <strong>Método de pago:</strong>{' '}
@@ -278,7 +299,12 @@ const HistorialVentas = () => {
                                         {paymentMethodStyles[venta.paymentMethod]?.label || venta.paymentMethod}
                                     </span>
                                 </p>
-                                <p><strong>Fecha:</strong> {dayjs(venta.createdAt).format('DD/MM/YYYY HH:mm')}</p>
+                                <p>
+                                    <strong>Fecha de Entrega:</strong>{' '}
+                                    {venta.deliverySchedule?.hour
+                                        ? `${dayjs(venta.deliveryDate).format('DD/MM/YYYY')} ${venta.deliverySchedule.hour}`
+                                        : dayjs(venta.deliveryDate).format('DD/MM/YYYY HH:mm')}
+                                </p>
                             </Card>
                         ))}
                     </div>
