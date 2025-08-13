@@ -425,6 +425,16 @@ const Pedidos = () => {
         otro: { label: 'Otro', color: 'gray' },
     };
 
+    const dayTranslations = {
+        'monday': 'Lunes',
+        'tuesday': 'Martes',
+        'wednesday': 'Miércoles',
+        'thursday': 'Jueves',
+        'friday': 'Viernes',
+        'saturday': 'Sábado',
+        'sunday': 'Domingo'
+    };
+
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
@@ -441,9 +451,13 @@ const Pedidos = () => {
                 {isMobile ? (
                     <div className="grid gap-4">
                         {filteredPedidos.map(pedido => (
-                            <Card key={pedido._id} title={pedido.customer?.name || 'Sin nombre'}>
-                                <p><strong>Teléfono:</strong> {pedido.customer?.phone || '—'}</p>
-                                <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p>
+                            <Card key={pedido._id} title={pedido.customer?.address || 'Sin nombre'} style={{ marginBottom: '16px' }}>
+                                <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
+                                {/* <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p> */}
+                                <p>
+                                    <strong>Día y hora de entrega:</strong>{' '}
+                                    {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
+                                </p>
                                 <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
                                 <p>
                                     <strong>Método de pago:</strong>{' '}
@@ -483,9 +497,13 @@ const Pedidos = () => {
                         <div className="col-span-1 overflow-y-auto max-h-[calc(100vh-64px)]">  {/* Aquí se define el scroll */}
                             {filteredPedidos.length > 0 ? (
                                 filteredPedidos.map(pedido => (
-                                    <Card key={pedido._id} title={pedido.customer?.name || 'Sin nombre'}>
-                                        <p><strong>Teléfono:</strong> {pedido.customer?.phone || '—'}</p>
-                                        <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p>
+                                    <Card key={pedido._id} title={pedido.customer?.address || 'Sin nombre'} style={{ marginBottom: '16px' }}>
+                                        <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
+                                        {/* <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p> */}
+                                        <p>
+                                            <strong>Día y hora de entrega:</strong>{' '}
+                                            {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
+                                        </p>
                                         <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
                                         <p>
                                             <strong>Método de pago:</strong>{' '}
