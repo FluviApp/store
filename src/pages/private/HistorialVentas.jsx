@@ -62,11 +62,19 @@ const HistorialVentas = () => {
 
         if (!isTransfer || !notPaid || !phone) return null;
 
-        const formattedDate = dayjs(order.createdAt).format('DD/MM/YYYY HH:mm');
+        // Use the delivery date for the message, as requested
+        const formattedDate = dayjs(order.deliveryDate).format('DD/MM/YYYY');
         const total = order.finalPrice?.toLocaleString('es-CL') ?? '0';
 
         const message = encodeURIComponent(
-            `Hola ${order.customer?.name || ''}, te escribimos para recordarte que tu pedido del ${formattedDate} por un total de $${total} aún no ha sido confirmado por transferencia.\nPor favor envíanos el comprobante. ¡Gracias! 🙌`
+            `Holaaaaa! Espero estés súper! Te hablo de Fluvi para enviarte los datos de transferencia para el pago del pedido del ${formattedDate} por un monto de $${total} 😊💦💧.\n\n` +
+            `Si ya efectuaste el pago te agradeceríamos nos enviaras el comprobante! Que tengas un excelente día 🙌\n\n` +
+            `Cesar Barahona\n` +
+            `18.125.988-4\n` +
+            `Banco de Chile\n` +
+            `Cuenta Vista\n` +
+            `00-012-55212-17\n` +
+            `cesarabel44@gmail.com`
         );
 
         return `https://wa.me/56${phone}?text=${message}`;
@@ -283,28 +291,68 @@ const HistorialVentas = () => {
                     <div className="grid gap-4">
                         {filteredVentas.map(venta => (
                             <Card key={venta._id} title={venta.customer?.name || 'Sin nombre'}>
-                                <p><strong>Teléfono:</strong> {venta.customer?.phone || '—'}</p>
-                                <p><strong>Dirección:</strong> {venta.customer?.address || '—'}</p>
-                                <p><strong>Total:</strong> ${venta.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
-                                <p>
-                                    <strong>Método de pago:</strong>{' '}
-                                    <span
-                                        style={{
-                                            backgroundColor: `${paymentMethodStyles[venta.paymentMethod]?.color || 'gray'}20`,
-                                            color: paymentMethodStyles[venta.paymentMethod]?.color || 'gray',
-                                            padding: '2px 8px',
-                                            borderRadius: '8px'
-                                        }}
-                                    >
-                                        {paymentMethodStyles[venta.paymentMethod]?.label || venta.paymentMethod}
-                                    </span>
-                                </p>
-                                <p>
-                                    <strong>Fecha de Entrega:</strong>{' '}
-                                    {venta.deliverySchedule?.hour
-                                        ? `${dayjs(venta.deliveryDate).format('DD/MM/YYYY')} ${venta.deliverySchedule.hour}`
-                                        : dayjs(venta.deliveryDate).format('DD/MM/YYYY HH:mm')}
-                                </p>
+                                <div className="space-y-2">
+                                    <p>
+                                        <strong>Teléfono:</strong> {venta.customer?.phone || '—'}
+                                    </p>
+                                    <p>
+                                        <strong>Dirección:</strong> {venta.customer?.address || '—'}
+                                    </p>
+                                    <p>
+                                        <strong>Total:</strong> ${venta.finalPrice?.toLocaleString('es-CL') ?? 0}
+                                    </p>
+                                    <p>
+                                        <strong>Método de pago:</strong>{' '}
+                                        {(() => {
+                                            const { label, color } = paymentMethodStyles[venta.paymentMethod] || { label: venta.paymentMethod, color: 'gray' };
+                                            return (
+                                                <span
+                                                    style={{
+                                                        backgroundColor: `${color}20`,
+                                                        color,
+                                                        padding: '2px 8px',
+                                                        borderRadius: '8px'
+                                                    }}
+                                                >
+                                                    {label}
+                                                </span>
+                                            );
+                                        })()}
+                                    </p>
+                                    <p>
+                                        <strong>Fecha de Venta:</strong> {dayjs(venta.createdAt).format('DD/MM/YYYY HH:mm')}
+                                    </p>
+                                    <p>
+                                        <strong>Fecha de Entrega:</strong>{' '}
+                                        {venta.deliverySchedule?.hour
+                                            ? `${dayjs(venta.deliveryDate).format('DD/MM/YYYY')} ${venta.deliverySchedule.hour}`
+                                            : dayjs(venta.deliveryDate).format('DD/MM/YYYY HH:mm')}
+                                    </p>
+
+                                    {/* Transferencia Pagada logic */}
+                                    {venta.paymentMethod === 'transferencia' && (
+                                        <div className="flex items-center space-x-2">
+                                            <strong>Transferencia Pagada:</strong>
+                                            <Switch
+                                                checked={venta.transferPay && venta.status === 'entregado'}
+                                                onChange={() => handleTransferToggle(venta)}
+                                                loading={loadingRowId === venta._id}
+                                                disabled={venta.status !== 'entregado'}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Acciones button logic */}
+                                    {getWhatsappUrl(venta) && (
+                                        <Button
+                                            type="default"
+                                            onClick={() => window.open(getWhatsappUrl(venta), '_blank')}
+                                            className="mt-2"
+                                        >
+                                            Cobrar por WhatsApp
+                                        </Button>
+                                    )}
+                                </div>
                             </Card>
                         ))}
                     </div>
