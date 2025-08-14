@@ -102,19 +102,12 @@ const HistorialVentas = () => {
 
     const columns = [
         {
-            title: 'Cliente',
-            dataIndex: ['customer', 'name'],
-        },
-        {
             title: 'Teléfono',
             dataIndex: ['customer', 'phone'],
         },
-        // Nueva columna para la dirección
         {
             title: 'Dirección',
             dataIndex: ['customer', 'address'],
-            // Si la dirección es larga, puedes acortarla
-            // render: (address) => (address && address.length > 30 ? `${address.substring(0, 30)}...` : address),
         },
         {
             title: 'Total',
@@ -138,20 +131,35 @@ const HistorialVentas = () => {
             title: 'Fecha de Entrega',
             dataIndex: 'deliveryDate',
             render: (date, record) => {
-                // Combina la fecha de entrega con la hora de deliverySchedule
                 const deliveryTime = record.deliverySchedule?.hour;
                 return deliveryTime ? `${dayjs(date).format('DD/MM/YYYY')} ${deliveryTime}` : dayjs(date).format('DD/MM/YYYY HH:mm');
             },
         },
+        // --- New Status Column ---
+        {
+            title: 'Estado',
+            dataIndex: 'status',
+            render: (status) => {
+                let color = 'gray';
+                if (status === 'entregado') {
+                    color = 'green';
+                } else if (status === 'pendiente') {
+                    color = 'volcano';
+                }
+                return (
+                    <Tag color={color}>
+                        {status?.toUpperCase()}
+                    </Tag>
+                );
+            },
+        },
+        // --- End of New Column ---
         {
             title: 'Transferencia Pagada',
             dataIndex: 'transferPay',
             render: (_, record) => {
-                // Renderiza el switch solo si el método de pago es transferencia.
                 if (record.paymentMethod === 'transferencia') {
                     const isDelivered = record.status === 'entregado';
-
-                    // El switch estará marcado solo si el pago fue por transferencia Y el pedido ya fue entregado.
                     const isTransferPaidAndDelivered = record.transferPay && isDelivered;
 
                     return (
@@ -162,13 +170,10 @@ const HistorialVentas = () => {
                                 handleTransferToggle(record);
                             }}
                             loading={loadingRowId === record._id}
-                            // El switch se deshabilita si el pedido no ha sido entregado.
                             disabled={!isDelivered}
                         />
                     );
                 }
-
-                // Para cualquier otro método de pago, no se muestra nada.
                 return null;
             },
         },
@@ -319,6 +324,24 @@ const HistorialVentas = () => {
                                             );
                                         })()}
                                     </p>
+                                    {/* --- New Status Field for Mobile --- */}
+                                    <p>
+                                        <strong>Estado:</strong>{' '}
+                                        {(() => {
+                                            let color = 'gray';
+                                            if (venta.status === 'entregado') {
+                                                color = 'green';
+                                            } else if (venta.status === 'pendiente') {
+                                                color = 'volcano';
+                                            }
+                                            return (
+                                                <Tag color={color}>
+                                                    {venta.status?.toUpperCase()}
+                                                </Tag>
+                                            );
+                                        })()}
+                                    </p>
+                                    {/* --- End of New Field --- */}
                                     <p>
                                         <strong>Fecha de Venta:</strong> {dayjs(venta.createdAt).format('DD/MM/YYYY HH:mm')}
                                     </p>
