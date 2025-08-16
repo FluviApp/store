@@ -580,6 +580,7 @@ const Pedidos = () => {
                                         setSelectedCustomer({
                                             id: client._id,
                                             name: client.name,
+                                            email: client.email,
                                             phone: client.phone,
                                             address: client.address,
                                             lat: client.lat,
