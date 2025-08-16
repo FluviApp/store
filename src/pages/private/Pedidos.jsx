@@ -248,6 +248,7 @@ const Pedidos = () => {
                 customer: {
                     id: selectedCustomer.id,
                     name: selectedCustomer.name,
+                    email: selectedCustomer.email,
                     phone: selectedCustomer.phone,
                     address: selectedCustomer.address,
                     lat: selectedCustomer.lat,
