@@ -269,6 +269,11 @@ const Pedidos = () => {
                     : null,
             };
 
+            // 🔎 Logs solicitados
+            console.log('🆔 ID (selectedCustomer):', selectedCustomer?.id);
+            console.log('📧 Email (selectedCustomer):', selectedCustomer?.email);
+            console.log('📦 Payload.customer:', { id: payload.customer.id, email: payload.customer.email });
+
             const res = editingOrder
                 ? await OrdersService.edit(editingOrder._id, payload)
                 : await OrdersService.create(payload);
@@ -289,6 +294,7 @@ const Pedidos = () => {
             message.error('Error al guardar el pedido');
         }
     };
+
 
 
 
@@ -613,11 +619,7 @@ const Pedidos = () => {
                                 title="Cliente Seleccionado"
                                 className="mb-4"
                                 extra={
-                                    <Button
-                                        type="text"
-                                        danger
-                                        onClick={() => setSelectedCustomer(null)}
-                                    >
+                                    <Button type="text" danger onClick={() => setSelectedCustomer(null)}>
                                         Quitar
                                     </Button>
                                 }
@@ -631,6 +633,13 @@ const Pedidos = () => {
                                     />
 
                                     <Input
+                                        value={selectedCustomer.email || ''}   // 👈 MOSTRAR EMAIL
+                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, email: e.target.value }))}
+                                        placeholder="Correo"
+                                        addonBefore="✉️"
+                                    />
+
+                                    <Input
                                         value={selectedCustomer.phone}
                                         onChange={(e) => setSelectedCustomer(prev => ({ ...prev, phone: e.target.value }))}
                                         placeholder="Teléfono"
@@ -641,9 +650,7 @@ const Pedidos = () => {
                                         <Autocomplete onLoad={ref => setAutocompleteRef(ref)} onPlaceChanged={handlePlaceChanged}>
                                             <Input
                                                 value={selectedCustomer.address}
-                                                onChange={(e) =>
-                                                    setSelectedCustomer(prev => ({ ...prev, address: e.target.value }))
-                                                }
+                                                onChange={(e) => setSelectedCustomer(prev => ({ ...prev, address: e.target.value }))}
                                                 placeholder="Dirección"
                                                 addonBefore="📍"
                                             />
@@ -656,19 +663,14 @@ const Pedidos = () => {
                                                 lat={selectedCustomer.lat}
                                                 lng={selectedCustomer.lon}
                                                 draggable={true}
-                                                onDragEnd={(lat, lng) =>
-                                                    setSelectedCustomer(prev => ({
-                                                        ...prev,
-                                                        lat,
-                                                        lon: lng,
-                                                    }))
-                                                }
+                                                onDragEnd={(lat, lng) => setSelectedCustomer(prev => ({ ...prev, lat, lon: lng }))}
                                             />
                                         </div>
                                     )}
                                 </div>
                             </Card>
                         )}
+
 
                         <Form.Item label="Productos">
                             <Select
