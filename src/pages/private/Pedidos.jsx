@@ -127,6 +127,7 @@ const Pedidos = () => {
             name: cliente.name,
             phone: cliente.phone,
             address: cliente.address,
+            block: cliente.block ?? cliente.deptoblock ?? '',
             lat: cliente.lat,
             lon: cliente.lon,
             observations: cliente.observations || '',
@@ -251,6 +252,7 @@ const Pedidos = () => {
                     email: selectedCustomer.email,
                     phone: selectedCustomer.phone,
                     address: selectedCustomer.address,
+                    block: selectedCustomer.block || '',
                     lat: selectedCustomer.lat,
                     lon: selectedCustomer.lon,
                     observations: selectedCustomer.observations || '',
@@ -371,10 +373,13 @@ const Pedidos = () => {
                     address: place.formatted_address,
                     lat,
                     lon: lng,
+                    // ✅ preserva el block si ya existía
+                    block: prev?.block ?? prev?.deptoblock ?? '',
                 }));
             }
         }
     };
+
 
     const hourBlocks = Array.from({ length: 24 }, (_, i) => {
         const hour = i % 12 === 0 ? 12 : i % 12;
@@ -458,7 +463,14 @@ const Pedidos = () => {
                 {isMobile ? (
                     <div className="grid gap-4">
                         {filteredPedidos.map(pedido => (
-                            <Card key={pedido._id} title={pedido.customer?.address || 'Sin nombre'} style={{ marginBottom: '16px' }}>
+                            <Card key={pedido._id} title={
+                                (() => {
+                                    const addr = pedido.customer?.address || 'Sin nombre';
+                                    const block = pedido.customer?.block ?? pedido.customer?.deptoblock;
+                                    return block ? `${addr} · ${block}` : addr;
+                                })()
+                            }
+                                style={{ marginBottom: '16px' }}>
                                 <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
                                 {/* <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p> */}
                                 <p>
@@ -583,6 +595,7 @@ const Pedidos = () => {
                                 onChange={(value) => {
                                     const client = clients.find(c => c._id === value);
                                     if (client) {
+                                        const block = client.block ?? client.deptoblock ?? '';
                                         setSelectedCustomer({
                                             id: client._id,
                                             name: client.name,
@@ -593,6 +606,8 @@ const Pedidos = () => {
                                             lon: client.lon,
                                             observations: '',
                                             notificationToken: client.token,
+                                            // ✅ usar siempre 'block' en el estado
+                                            block,
                                         });
                                     }
                                 }}
@@ -602,16 +617,23 @@ const Pedidos = () => {
                                 loading={isClientsLoading}
                                 value={selectedCustomer?.id}
                             >
-                                {clients.map(client => (
-                                    <Option
-                                        key={client._id}
-                                        value={client._id}
-                                        label={client.address} // 💡 Cambiado para filtrar solo por la dirección
-                                    >
-                                        {client.address}
-                                    </Option>
-                                ))}
+                                {clients.map(client => {
+                                    const block = client.block ?? client.deptoblock;
+                                    const addressWithBlock = block ? `${client.address} · ${block}` : client.address;
+                                    return (
+                                        <Option
+                                            key={client._id}
+                                            value={client._id}
+                                            // ✅ filtra por dirección + block
+                                            label={addressWithBlock}
+                                        >
+                                            {addressWithBlock}
+                                        </Option>
+                                    );
+                                })}
                             </Select>
+
+
                         </Form.Item>
                         {selectedCustomer && (
                             <Card
@@ -655,7 +677,17 @@ const Pedidos = () => {
                                                 addonBefore="📍"
                                             />
                                         </Autocomplete>
+
+                                        <Input
+                                            value={selectedCustomer?.block || ''}
+                                            onChange={(e) => setSelectedCustomer(prev => ({ ...prev, block: e.target.value }))}
+                                            placeholder="Depto / Block (opcional)"
+                                            addonBefore="🏢"
+                                        />
                                     </div>
+
+
+
 
                                     {typeof selectedCustomer.lat === 'number' && typeof selectedCustomer.lon === 'number' && (
                                         <div className="col-span-2 border rounded overflow-hidden" style={{ height: '220px' }}>

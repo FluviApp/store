@@ -3,7 +3,7 @@ import Orders from '../services/Orders';
 import { useAuth } from '../context/AuthContext';
 
 const useOrders = (params = {}) => {
-    const { page = 1, limit = 50, startDate, endDate, status, transferPay } = params;
+    const { page = 1, limit = 50, startDate, endDate, status, transferPay, deliveryType } = params;
     const { user } = useAuth();
 
     return useQuery({
@@ -15,7 +15,8 @@ const useOrders = (params = {}) => {
             startDate,
             endDate,
             status,
-            transferPay
+            transferPay,
+            deliveryType
         ],
         queryFn: () =>
             Orders.getAll({
@@ -26,6 +27,7 @@ const useOrders = (params = {}) => {
                 endDate,
                 status,
                 transferPay,
+                deliveryType
             }),
         keepPreviousData: true,
         enabled: !!user?.storeId,
