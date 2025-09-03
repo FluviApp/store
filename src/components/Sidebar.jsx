@@ -13,6 +13,8 @@ import {
     LogoutOutlined
 } from '@ant-design/icons';
 
+import useStoreInfo from '../hooks/useStoreInfo'; // <— NUEVO
+
 const { Sider } = Layout;
 
 const Sidebar = () => {
@@ -20,6 +22,9 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(true);
 
+    const { data: storeResp } = useStoreInfo(); // { success, data: store }
+    const store = storeResp?.data || null;
+    console.log(store)
     const toggleSidebar = () => setCollapsed(!collapsed);
 
     const handleLogout = () => {
@@ -33,40 +38,48 @@ const Sidebar = () => {
                 return ['1'];
             case '/metricas':
                 return ['2'];
-
             case '/clientes':
                 return ['3'];
-
             case '/categorias':
                 return ['4'];
-
             case '/paquetes':
                 return ['5'];
-
             case '/repartidores':
                 return ['6'];
-
             case '/zonasdespacho':
                 return ['7'];
-
             case '/pedidos':
                 return ['8'];
-
             case '/historialventas':
                 return ['9'];
-
             case '/banners':
                 return ['10'];
-
             case '/notificaciones':
                 return ['11'];
             case '/codigosdescuento':
                 return ['12'];
-
             default:
                 return ['1'];
         }
     };
+
+    const renderBrand = (className = '') => (
+        <div className={`flex flex-col items-center justify-center ${className}`}>
+            {store?.image ? (
+                <img
+                    src={store.image}
+                    alt={store?.name || 'Store Logo'}
+                    className="h-12 w-auto object-contain rounded"
+                    draggable={false}
+                />
+            ) : (
+                <div className="font-bold text-2xl text-gray-800">Fluvi</div>
+            )}
+            <div className="mt-2 text-sm text-gray-600 line-clamp-1">
+                {store?.name || '—'}
+            </div>
+        </div>
+    );
 
     const renderMenuItems = () => (
         <>
@@ -103,11 +116,9 @@ const Sidebar = () => {
             <Menu.Item key="11" icon={<FileTextOutlined />}>
                 <Link to="/notificaciones">Notificaciones</Link>
             </Menu.Item>
-
             <Menu.Item key="12" icon={<FileTextOutlined />}>
                 <Link to="/codigosdescuento">Codigos de descuento</Link>
             </Menu.Item>
-
             <Menu.Item
                 key="logout"
                 icon={<LogoutOutlined />}
@@ -121,7 +132,7 @@ const Sidebar = () => {
 
     return (
         <>
-            {/* Botón hamburguesa solo visible en mobile */}
+            {/* Botón hamburguesa mobile */}
             <div className="lg:hidden fixed top-4 left-4 z-50">
                 <Button
                     icon={<MenuOutlined />}
@@ -136,9 +147,7 @@ const Sidebar = () => {
                 className={`fixed top-0 left-0 h-full w-64 bg-white z-40 transition-transform duration-300 shadow-lg ${collapsed ? '-translate-x-full' : 'translate-x-0'
                     } lg:hidden`}
             >
-                <div className="flex items-center justify-center p-6 font-bold text-2xl text-gray-800">
-                    Fluvi
-                </div>
+                {renderBrand('p-6')}
                 <Menu
                     mode="inline"
                     selectedKeys={getSelectedKey()}
@@ -159,14 +168,12 @@ const Sidebar = () => {
                 width={250}
                 className="hidden lg:block h-screen border-r border-gray-200"
             >
-                <div className="flex items-center justify-center p-6 font-bold text-2xl text-gray-800">
-                    Fluvi
-                </div>
+                {renderBrand('p-6')}
                 <Menu mode="inline" selectedKeys={getSelectedKey()}>
                     {renderMenuItems()}
                 </Menu>
                 <div className="text-center text-sm text-gray-500 p-2">
-                    © 2020 FLuvi
+                    © 2020 Fluvi
                 </div>
             </Sider>
         </>
