@@ -1,5 +1,5 @@
 // Vista de administración de pedidos
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import {
     Table, Button, Space, Input, Modal, Form, Card, message, Empty, Select, Radio, DatePicker, Row, Col, Tag
@@ -447,6 +447,38 @@ const Pedidos = () => {
         'sunday': 'Domingo'
     };
 
+    // 👉 Totales por producto (sobre la lista filtrada que estás mostrando)
+    const productCards = useMemo(() => {
+        const map = new Map();
+        (filteredPedidos || []).forEach((order) => {
+            (order.products || []).forEach((prod) => {
+                // clave por productId; si no viene, cae a nombre
+                const key = String(prod.productId ?? prod.name);
+                const prev = map.get(key) || {
+                    productId: key,
+                    name: prod.name,
+                    quantity: 0,
+                    revenue: 0,
+                };
+                const qty = Number(prod.quantity) || 0;
+                const unit = Number(prod.unitPrice) || 0;
+                const lineTotal = Number(prod.totalPrice ?? unit * qty) || 0;
+
+                prev.quantity += qty;
+                prev.revenue += lineTotal;
+                map.set(key, prev);
+            });
+        });
+
+        // Ordenar por cantidad descendente
+        return Array.from(map.values()).sort((a, b) => b.quantity - a.quantity);
+    }, [filteredPedidos]);
+
+    // Mostrar top N con opción de expandir
+    const [showAllCards, setShowAllCards] = useState(false);
+    const visibleCount = showAllCards ? productCards.length : Math.min(8, productCards.length);
+    const showProductSummary = productCards.length > 0;
+
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
@@ -457,6 +489,35 @@ const Pedidos = () => {
                 </div>
 
 
+                {showProductSummary && (
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h2 className="text-xl font-semibold">Unidades por producto</h2>
+                            {productCards.length > 8 && (
+                                <Button size="small" onClick={() => setShowAllCards(s => !s)}>
+                                    {showAllCards ? 'Ver menos' : 'Ver todos'}
+                                </Button>
+                            )}
+                        </div>
+
+                        <Row gutter={[12, 12]}>
+                            {productCards.slice(0, visibleCount).map((item) => (
+                                <Col key={item.productId} xs={12} sm={8} md={6} lg={6} xl={4}>
+                                    <Card size="small" hoverable>
+                                        <div className="text-sm text-gray-500 line-clamp-2">{item.name}</div>
+                                        <div className="mt-1 flex items-baseline gap-2">
+                                            <span className="text-2xl font-bold">{item.quantity}</span>
+                                            <span className="text-xs text-gray-400">unid.</span>
+                                        </div>
+                                        <div className="text-xs text-gray-400 mt-1">
+                                            Venta: ${Math.round(item.revenue).toLocaleString('es-CL')}
+                                        </div>
+                                    </Card>
+                                </Col>
+                            ))}
+                        </Row>
+                    </div>
+                )}
 
 
 
@@ -910,480 +971,6 @@ const Pedidos = () => {
         </div>
     );
 
-
-    // return (
-    //     <div className="flex min-h-screen bg-gray-100">
-    //         <Sidebar />
-    //         <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
-    //             <div className="flex justify-between items-center mb-6">
-    //                 <h1 className="text-3xl font-bold">Pedidos</h1>
-    //                 <Button type="primary" icon={<PlusOutlined />} onClick={handleAgregar}>Agregar Pedido</Button>
-    //             </div>
-
-    //             <div className="mb-6 flex flex-wrap gap-4 items-center">
-    //                 <DatePicker.RangePicker
-    //                     format="YYYY-MM-DD"
-    //                     onChange={(range) => {
-    //                         setDateRange(range || []);
-    //                         setDateSearchTriggered(false); // reinicia el trigger hasta que se haga click en Buscar
-    //                     }}
-    //                 />
-    //                 <Button
-    //                     type="primary"
-    //                     onClick={() => {
-    //                         setDateSearchTriggered(true);
-    //                         refetch();
-    //                     }}
-    //                     disabled={!dateRange || dateRange.length !== 2}
-    //                 >
-    //                     Buscar por Fecha
-    //                 </Button>
-    //             </div>
-
-
-    //             <Search
-    //                 placeholder="Buscar cliente"
-    //                 allowClear
-    //                 enterButton={<SearchOutlined />}
-    //                 size="large"
-    //                 onSearch={setSearchText}
-    //                 className="mb-6"
-    //             />
-
-    //             {isMobile ? (
-    //                 <div className="grid gap-4">
-    //                     {filteredPedidos.map(pedido => (
-    //                         <Card key={pedido._id} title={pedido.customer?.name || 'Sin nombre'}>
-    //                             <p><strong>Teléfono:</strong> {pedido.customer?.phone || '—'}</p>
-    //                             <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p>
-    //                             <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
-    //                             <p>
-    //                                 <strong>Método de pago:</strong>{' '}
-    //                                 <span
-    //                                     style={{
-    //                                         backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
-    //                                         color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
-    //                                         padding: '2px 8px',
-    //                                         borderRadius: '8px'
-    //                                     }}
-    //                                 >
-    //                                     {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
-    //                                 </span>
-    //                             </p>
-
-    //                             <p>
-    //                                 <strong>Estado:</strong>{' '}
-    //                                 <Tag
-    //                                     color={statusColorMap[pedido.status]}
-    //                                     style={{ cursor: 'pointer' }}
-    //                                     onClick={() => openStatusModal(pedido)}
-    //                                 >
-    //                                     {pedido.status.toUpperCase()}
-    //                                 </Tag>
-    //                             </p>
-
-
-    //                             <Space className="mt-2">
-    //                                 <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
-    //                                 <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
-    //                             </Space>
-    //                         </Card>
-    //                     ))}
-    //                 </div>
-    //             ) : (
-    //                 <div className="grid grid-cols-2 gap-4 h-screen">
-    //                     {/* Mitad izquierda con los pedidos en formato de tarjetas */}
-    //                     <div className="col-span-1 overflow-y-auto max-h-[calc(100vh-64px)]">  {/* Aquí se define el scroll */}
-    //                         {filteredPedidos.length > 0 ? (
-    //                             filteredPedidos.map(pedido => (
-    //                                 <Card key={pedido._id} title={pedido.customer?.name || 'Sin nombre'}>
-    //                                     <p><strong>Teléfono:</strong> {pedido.customer?.phone || '—'}</p>
-    //                                     <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p>
-    //                                     <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
-    //                                     <p>
-    //                                         <strong>Método de pago:</strong>{' '}
-    //                                         <span
-    //                                             style={{
-    //                                                 backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
-    //                                                 color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
-    //                                                 padding: '2px 8px',
-    //                                                 borderRadius: '8px'
-    //                                             }}
-    //                                         >
-    //                                             {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
-    //                                         </span>
-    //                                     </p>
-
-    //                                     <p>
-    //                                         <strong>Estado:</strong>{' '}
-    //                                         <Tag
-    //                                             color={statusColorMap[pedido.status]}
-    //                                             style={{ cursor: 'pointer' }}
-    //                                             onClick={() => openStatusModal(pedido)}
-    //                                         >
-    //                                             {pedido.status.toUpperCase()}
-    //                                         </Tag>
-    //                                     </p>
-
-    //                                     <Space className="mt-2">
-    //                                         <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
-    //                                         <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
-    //                                     </Space>
-    //                                 </Card>
-    //                             ))
-    //                         ) : (
-    //                             <Empty description="No se encontraron pedidos" />
-    //                         )}
-    //                     </div>
-
-    //                     {/* Mitad derecha con el mapa */}
-    //                     <div className="col-span-1 h-full">  {/* Aquí se asegura de que ocupe el alto completo */}
-    //                         <OrdersMap
-    //                             locations={filteredPedidos.map(pedido => ({
-    //                                 lat: pedido.customer.lat,
-    //                                 lng: pedido.customer.lon,
-    //                             }))}
-    //                         />
-    //                     </div>
-    //                 </div>
-
-
-    //                 // <Table
-    //                 //     dataSource={filteredPedidos}
-    //                 //     columns={columns}
-    //                 //     rowKey="_id"
-    //                 //     loading={isLoading}
-    //                 //     pagination={{ pageSize }}
-    //                 //     bordered
-    //                 // />
-    //             )}
-
-
-    //             <Modal
-    //                 title={editingOrder ? 'Editar Pedido' : 'Nuevo Pedido'}
-    //                 open={isModalVisible}
-    //                 onOk={handleModalOk}
-    //                 onCancel={() => {
-    //                     setIsModalVisible(false);
-    //                     setEditingOrder(null);
-    //                     form.resetFields();
-    //                     setSelectedCustomer(null);
-    //                     setSelectedProducts([]);
-    //                     setProductSearchTerm('');
-    //                 }}
-    //                 width={800}
-    //             >
-    //                 <Form form={form} layout="vertical">
-    //                     <Form.Item label="Cliente" required>
-    //                         <Select
-    //                             showSearch
-    //                             placeholder="Buscar cliente por nombre"
-    //                             optionFilterProp="label"
-    //                             onChange={(value) => {
-    //                                 const client = clients.find(c => c._id === value);
-    //                                 if (client) {
-    //                                     setSelectedCustomer({
-    //                                         id: client._id,
-    //                                         name: client.name,
-    //                                         phone: client.phone,
-    //                                         address: client.address,
-    //                                         lat: client.lat,
-    //                                         lon: client.lon,
-    //                                         observations: '',
-    //                                         notificationToken: client.token,
-    //                                     });
-    //                                 }
-    //                             }}
-    //                             filterOption={(input, option) =>
-    //                                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-    //                             }
-    //                             loading={isClientsLoading}
-    //                             value={selectedCustomer?.id}
-    //                         >
-    //                             {clients.map(client => (
-    //                                 <Option
-    //                                     key={client._id}
-    //                                     value={client._id}
-    //                                     label={`${client.name} - ${client.phone}`} // 💡 Usamos label para filtro
-    //                                 >
-    //                                     {client.name} - {client.phone}
-    //                                 </Option>
-    //                             ))}
-    //                         </Select>
-
-    //                     </Form.Item>
-    //                     {selectedCustomer && (
-    //                         <Card
-    //                             size="small"
-    //                             title="Cliente Seleccionado"
-    //                             className="mb-4"
-    //                             extra={
-    //                                 <Button
-    //                                     type="text"
-    //                                     danger
-    //                                     onClick={() => setSelectedCustomer(null)}
-    //                                 >
-    //                                     Quitar
-    //                                 </Button>
-    //                             }
-    //                         >
-    //                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    //                                 <Input
-    //                                     value={selectedCustomer.name}
-    //                                     onChange={(e) => setSelectedCustomer(prev => ({ ...prev, name: e.target.value }))}
-    //                                     placeholder="Nombre"
-    //                                     addonBefore="👤"
-    //                                 />
-
-    //                                 <Input
-    //                                     value={selectedCustomer.phone}
-    //                                     onChange={(e) => setSelectedCustomer(prev => ({ ...prev, phone: e.target.value }))}
-    //                                     placeholder="Teléfono"
-    //                                     addonBefore="📞"
-    //                                 />
-
-    //                                 <div className="col-span-2">
-    //                                     <Autocomplete onLoad={ref => setAutocompleteRef(ref)} onPlaceChanged={handlePlaceChanged}>
-    //                                         <Input
-    //                                             value={selectedCustomer.address}
-    //                                             onChange={(e) =>
-    //                                                 setSelectedCustomer(prev => ({ ...prev, address: e.target.value }))
-    //                                             }
-    //                                             placeholder="Dirección"
-    //                                             addonBefore="📍"
-    //                                         />
-    //                                     </Autocomplete>
-    //                                 </div>
-
-    //                                 {typeof selectedCustomer.lat === 'number' && typeof selectedCustomer.lon === 'number' && (
-    //                                     <div className="col-span-2 border rounded overflow-hidden" style={{ height: '220px' }}>
-    //                                         <ClientMap
-    //                                             lat={selectedCustomer.lat}
-    //                                             lng={selectedCustomer.lon}
-    //                                             draggable={true}
-    //                                             onDragEnd={(lat, lng) =>
-    //                                                 setSelectedCustomer(prev => ({
-    //                                                     ...prev,
-    //                                                     lat,
-    //                                                     lon: lng,
-    //                                                 }))
-    //                                             }
-    //                                         />
-    //                                     </div>
-    //                                 )}
-    //                             </div>
-    //                         </Card>
-    //                     )}
-
-
-    //                     <Form.Item label="Productos">
-    //                         <Select
-    //                             showSearch
-    //                             placeholder="Buscar productos..."
-    //                             optionFilterProp="label"
-    //                             filterOption={false} // 🔥 desactiva filtrado automático
-    //                             onSearch={(val) => setProductSearchTerm(val)} // 🔥 usa input del usuario para buscar
-    //                             loading={isLoadingProductsForSelect}
-    //                             onSelect={(productId) => {
-    //                                 const product = products.find(p => p._id === productId);
-    //                                 if (product) handleAddProduct(product);
-    //                             }}
-    //                         >
-    //                             {products.map((product) => (
-    //                                 <Option
-    //                                     key={product._id}
-    //                                     value={product._id}
-    //                                     label={product.name}
-    //                                 >
-    //                                     {product.name} - ${product.priceDiscount ?? product.priceBase}
-    //                                 </Option>
-    //                             ))}
-    //                         </Select>
-    //                     </Form.Item>
-
-
-
-    //                     {selectedProducts.length > 0 && (
-    //                         <div className="mt-2 space-y-2">
-    //                             {selectedProducts.map(product => (
-    //                                 <Card
-    //                                     key={product.productId}
-    //                                     size="small"
-    //                                     className="border border-gray-200"
-    //                                     title={product.name}
-    //                                     extra={
-    //                                         <Button
-    //                                             size="small"
-    //                                             danger
-    //                                             onClick={() => handleRemoveProduct(product.productId)}
-    //                                         >
-    //                                             Quitar
-    //                                         </Button>
-    //                                     }
-    //                                 >
-    //                                     <div className="flex items-center justify-between gap-4">
-    //                                         <div className="flex items-center gap-2">
-    //                                             <Button onClick={() => handleChangeQuantity(product.productId, -1)}>-</Button>
-    //                                             <span>{product.quantity}</span>
-    //                                             <Button onClick={() => handleChangeQuantity(product.productId, 1)}>+</Button>
-    //                                         </div>
-    //                                         <span className="font-semibold">
-    //                                             ${typeof product.totalPrice === 'number' ? product.totalPrice.toFixed(0) : '0'}
-    //                                         </span>
-    //                                     </div>
-    //                                 </Card>
-    //                             ))}
-    //                         </div>
-    //                     )}
-
-    //                     <div className="text-right font-bold text-lg mt-4">
-    //                         Total: ${selectedProducts.reduce((acc, p) => acc + p.totalPrice, 0).toFixed(0)}
-    //                     </div>
-
-    //                     <Form.Item name="paymentMethod" label="Método de Pago" rules={[{ required: true }]}>
-    //                         <Select>
-    //                             {paymentMethods.map(p => <Option key={p} value={p}>{p}</Option>)}
-    //                         </Select>
-    //                     </Form.Item>
-    //                     <Form.Item name="deliveryType" label="Tipo de Entrega" rules={[{ required: true }]}>
-    //                         <Radio.Group>
-    //                             {deliveryTypes.map(t => <Radio key={t} value={t}>{t === 'pickup' ? 'Retiro' : 'Despacho'}</Radio>)}
-    //                         </Radio.Group>
-    //                     </Form.Item>
-    //                     <Row gutter={16}>
-    //                         <Col xs={24} md={12}>
-    //                             <Form.Item
-    //                                 name="deliveryDay"
-    //                                 label="Día de Entrega"
-    //                                 rules={[{ required: true, message: 'Selecciona el día de entrega' }]}
-    //                             >
-    //                                 <DatePicker
-    //                                     format="YYYY-MM-DD"
-    //                                     style={{ width: '100%' }}
-    //                                     placeholder="Selecciona una fecha"
-    //                                     disabledDate={(current) => current && current < dayjs().startOf('day')}
-    //                                 />
-    //                             </Form.Item>
-    //                         </Col>
-
-    //                         <Col xs={24} md={12}>
-    //                             <Form.Item
-    //                                 name="deliveryHour"
-    //                                 label="Horario de Entrega"
-    //                                 rules={[{ required: true, message: 'Selecciona un horario' }]}
-    //                             >
-    //                                 <Select placeholder="Selecciona un horario">
-    //                                     {hourBlocks.map((hour) => (
-    //                                         <Option key={hour} value={hour}>
-    //                                             {hour}
-    //                                         </Option>
-    //                                     ))}
-    //                                 </Select>
-    //                             </Form.Item>
-    //                         </Col>
-    //                     </Row>
-
-    //                     <Form.Item
-    //                         name="shippingCost"
-    //                         label="Costo de Envío"
-    //                         rules={[
-    //                             { required: false },
-    //                             {
-    //                                 pattern: /^\d+$/,
-    //                                 message: 'Solo se permiten números sin puntos ni letras',
-    //                             },
-    //                         ]}
-    //                     >
-    //                         <Input
-    //                             placeholder="Ej: 2000"
-    //                             maxLength={6}
-    //                             inputMode="numeric"
-    //                             addonBefore="$"
-    //                         />
-    //                     </Form.Item>
-
-    //                     <Form.Item
-    //                         name="dealerId"
-    //                         label="Repartidor"
-    //                         rules={[{ required: false }]}
-    //                     >
-    //                         <Select
-    //                             placeholder="Selecciona un repartidor"
-    //                             allowClear
-    //                             showSearch
-    //                             optionFilterProp="children"
-    //                             loading={isLoadingDealers}
-    //                         >
-    //                             {dealers.map(dealer => (
-    //                                 <Option key={dealer._id} value={dealer._id}>
-    //                                     {dealer.name}
-    //                                 </Option>
-    //                             ))}
-    //                         </Select>
-    //                     </Form.Item>
-
-
-    //                     <Form.Item
-    //                         name="merchantObservation"
-    //                         label="Observación del Pedido"
-    //                     >
-    //                         <Input.TextArea
-    //                             rows={3}
-    //                             placeholder="Instrucciones especiales, notas internas, etc."
-    //                             allowClear
-    //                             showCount
-    //                             maxLength={300}
-    //                         />
-    //                     </Form.Item>
-
-
-    //                 </Form>
-    //             </Modal>
-
-
-    //             <Modal
-    //                 title="Cambiar Estado del Pedido"
-    //                 open={isStatusModalVisible}
-    //                 onCancel={() => setIsStatusModalVisible(false)}
-    //                 onOk={async () => {
-    //                     if (!newStatus || !selectedOrderForStatus) return;
-    //                     try {
-    //                         const res = await OrdersService.edit(selectedOrderForStatus._id, { status: newStatus });
-    //                         if (res.success) {
-    //                             message.success('Estado actualizado correctamente');
-    //                             refetch();
-    //                             setIsStatusModalVisible(false);
-    //                             setSelectedOrderForStatus(null);
-    //                         } else {
-    //                             message.error(res.message || 'Error al actualizar estado');
-    //                         }
-    //                     } catch (err) {
-    //                         console.error('❌ Error al cambiar estado:', err);
-    //                         message.error('Error al cambiar estado');
-    //                     }
-    //                 }}
-    //             >
-    //                 <p><strong>Estado actual:</strong>{' '}
-    //                     <Tag color={statusColorMap[selectedOrderForStatus?.status]}>
-    //                         {selectedOrderForStatus?.status.toUpperCase()}
-    //                     </Tag>
-    //                 </p>
-    //                 <Select
-    //                     value={newStatus}
-    //                     onChange={setNewStatus}
-    //                     style={{ width: '100%' }}
-    //                 >
-    //                     {Object.keys(statusColorMap).map(status => (
-    //                         <Option key={status} value={status}>
-    //                             {status.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}
-    //                         </Option>
-    //                     ))}
-    //                 </Select>
-    //             </Modal>
-
-    //         </div>
-    //     </div>
-    // );
 };
 
 export default Pedidos;
