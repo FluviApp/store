@@ -31,12 +31,21 @@ const Clientes = () => {
     const pageSize = 5;
     const isMobile = useMediaQuery({ maxWidth: 768 });
 
+    // 🔹 Helper seguro para normalizar cualquier valor
+    const norm = (v) => (v == null ? '' : String(v)).toLowerCase();
+
     const filteredClients = searchText
-        ? clients.filter((item) =>
-            item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            item.email.toLowerCase().includes(searchText.toLowerCase()) ||
-            item.phone.toLowerCase().includes(searchText.toLowerCase())
-        )
+        ? clients
+            .filter(Boolean)
+            .filter((item) => {
+                const q = norm(searchText).trim();
+                return (
+                    norm(item?.name).includes(q) ||
+                    norm(item?.email).includes(q) ||
+                    norm(item?.phone).includes(q) ||
+                    norm(item?.address).includes(q)
+                );
+            })
         : clients;
 
     const paginatedClients = filteredClients.slice(
@@ -70,7 +79,6 @@ const Clientes = () => {
         setMapVisible(false); // 👈 reiniciás visibilidad
         setIsModalVisible(true);
     };
-
 
     const handleEditar = (client) => {
         setEditingClient(client);
@@ -163,7 +171,7 @@ const Clientes = () => {
 
     const handleBuscar = (value) => {
         setCurrentPage(1);
-        setSearchText(value);
+        setSearchText(value ?? ''); // 🔹 evita undefined
     };
 
     const handleModalCancel = () => {
@@ -296,30 +304,9 @@ const Clientes = () => {
                             </Autocomplete>
                         </Form.Item>
 
-
                         <Form.Item name="bloque" label="Block o Torre (opcional)">
                             <Input placeholder="Ej: Torre B, Block 5, Edificio Azul..." />
                         </Form.Item>
-
-                        {/* <div style={{ height: '500px', width: '100%', position: 'relative', zIndex: 1 }}>
-                            <GoogleMap
-                                mapContainerStyle={{ width: '100%', height: '100%' }}
-                                center={center}
-                                zoom={16}
-                            >
-                                <Marker
-                                    key={Date.now()}
-                                    position={center}
-                                    onLoad={() => console.log('📍 Marker visible')}
-                                    options={{
-                                        optimized: false,
-                                        visible: true,
-                                        zIndex: 9999
-                                    }}
-                                />
-                            </GoogleMap>
-                        </div> */}
-
 
                         {mapVisible && typeof selectedLat === 'number' && typeof selectedLng === 'number' && (
                             <ClientMap
