@@ -44,6 +44,8 @@ const HistorialVentas = () => {
     const [searchText, setSearchText] = useState('');
     const [dateRange, setDateRange] = useState([]);
     const [loadingRowId, setLoadingRowId] = useState(null);
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
 
     const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
     const [selectedOrderForStatus, setSelectedOrderForStatus] = useState(null);
@@ -56,6 +58,8 @@ const HistorialVentas = () => {
         status: null,
         transferPay: undefined,
         deliveryType: undefined,
+        page: 1,
+        limit: 10,
     });
 
     const handleTransferToggle = async (order) => {
@@ -108,17 +112,19 @@ const HistorialVentas = () => {
                 ...prev,
                 startDate: dayjs(dateRange[0]).startOf('day').toISOString(),
                 endDate: dayjs(dateRange[1]).endOf('day').toISOString(),
+                page: 1,
             }));
+            setPage(1);
             refetch();
         }
     };
 
 
 
-    const { data, isLoading, refetch } = useOrders(queryParams);
+    const { data, isLoading, refetch } = useOrders({ ...queryParams, page, limit });
     console.log(data)
     const ventas = data?.data?.docs || [];
-    const pageSize = 10;
+    const total = data?.data?.totalDocs ?? data?.data?.total ?? 0;
 
     const filteredVentas = searchText
         ? ventas.filter(p => p.customer?.name?.toLowerCase().includes(searchText.toLowerCase()))
@@ -516,7 +522,9 @@ const HistorialVentas = () => {
                             ...prev,
                             status: 'entregado',
                             transferPay: undefined,
+                            page: 1,
                         }));
+                        setPage(1);
                         refetch();
                     }}>
                         Ver Entregados
@@ -527,7 +535,9 @@ const HistorialVentas = () => {
                             ...prev,
                             status: 'pendiente',
                             transferPay: undefined,
+                            page: 1,
                         }));
+                        setPage(1);
                         refetch();
                     }}>
                         Ver Pendientes
@@ -538,7 +548,9 @@ const HistorialVentas = () => {
                             ...prev,
                             status: 'entregado',
                             transferPay: false,
+                            page: 1,
                         }));
+                        setPage(1);
                         refetch();
                     }}>
                         No Pagados Transferencia
@@ -550,7 +562,8 @@ const HistorialVentas = () => {
                         style={{ minWidth: 180 }}
                         value={queryParams.deliveryType}
                         onChange={(val) => {
-                            setQueryParams(prev => ({ ...prev, deliveryType: val || undefined }));
+                            setQueryParams(prev => ({ ...prev, deliveryType: val || undefined, page: 1 }));
+                            setPage(1);
                             refetch();
                         }}
                     >
@@ -568,8 +581,11 @@ const HistorialVentas = () => {
                             status: null,
                             transferPay: undefined,
                             deliveryType: undefined,
+                            page: 1,
+                            limit,
                         });
                         setDateRange([]);
+                        setPage(1);
                         refetch();
                     }}>
                         Limpiar Filtros
@@ -594,7 +610,8 @@ const HistorialVentas = () => {
                             closable
                             onClose={(e) => {
                                 e.preventDefault(); // evita que AntD lo quite antes de actualizar estado
-                                setQueryParams(prev => ({ ...prev, deliveryType: undefined }));
+                                setQueryParams(prev => ({ ...prev, deliveryType: undefined, page: 1 }));
+                                setPage(1);
                                 refetch();
                             }}
                         >
@@ -747,7 +764,18 @@ const HistorialVentas = () => {
                         columns={columns}
                         rowKey="_id"
                         loading={isLoading}
-                        pagination={{ pageSize }}
+                        pagination={{
+                            current: page,
+                            pageSize: limit,
+                            total,
+                            showSizeChanger: true,
+                            pageSizeOptions: ['10', '20', '50', '100'],
+                            onChange: (p, l) => {
+                                setPage(p);
+                                setLimit(l);
+                                setQueryParams(prev => ({ ...prev, page: p, limit: l }));
+                            },
+                        }}
                         bordered
                         scroll={{ y: 520, x: 'max-content' }}
                     />
