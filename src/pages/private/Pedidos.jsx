@@ -24,7 +24,7 @@ const orderStatuses = ['pending', 'confirmed', 'dispatched', 'delivered', 'cance
 
 // Reemplaza este arreglo por los ENUMS válidos del modelo
 const paymentMethods = ['efectivo', 'transferencia', 'webpay', 'mercadopago', 'tarjeta', 'otro'];
-const deliveryTypes = ['pickup', 'delivery']; // 'pickup' se convierte a 'retiro' en el mapping
+const deliveryTypes = ['local', 'delivery']; // 'local' y 'delivery'
 const statusColorMap = {
     pendiente: 'orange',
     confirmado: 'blue',
@@ -164,7 +164,7 @@ const Pedidos = () => {
 
     const reverseDeliveryTypeMap = {
         domicilio: 'delivery',
-        retiro: 'pickup',
+        local: 'local',
     };
 
 
@@ -219,7 +219,7 @@ const Pedidos = () => {
 
             const deliveryTypeMap = {
                 delivery: 'domicilio',
-                pickup: 'retiro',
+                local: 'local',
             };
 
             const products = selectedProducts.map(p => ({
@@ -240,7 +240,7 @@ const Pedidos = () => {
                 commerceId: user.commerceId ?? 'default_commerce_id',
                 origin: 'admin',
                 paymentMethod: paymentMethodMap[values.paymentMethod] || 'efectivo',
-                deliveryType: deliveryTypeMap[values.deliveryType] || 'retiro',
+                deliveryType: deliveryTypeMap[values.deliveryType] || 'local',
                 status: 'pendiente',
                 products,
                 price: totalProducts,
@@ -836,41 +836,47 @@ const Pedidos = () => {
                         </Form.Item>
                         <Form.Item name="deliveryType" label="Tipo de Entrega" rules={[{ required: true }]}>
                             <Radio.Group>
-                                {deliveryTypes.map(t => <Radio key={t} value={t}>{t === 'pickup' ? 'Retiro' : 'Despacho'}</Radio>)}
+                                {deliveryTypes.map(t => <Radio key={t} value={t}>{t === 'local' ? 'Local' : 'Despacho'}</Radio>)}
                             </Radio.Group>
                         </Form.Item>
-                        <Row gutter={16}>
-                            <Col xs={24} md={12}>
-                                <Form.Item
-                                    name="deliveryDay"
-                                    label="Día de Entrega"
-                                    rules={[{ required: true, message: 'Selecciona el día de entrega' }]}
-                                >
-                                    <DatePicker
-                                        format="YYYY-MM-DD"
-                                        style={{ width: '100%' }}
-                                        placeholder="Selecciona una fecha"
-                                        disabledDate={(current) => current && current < dayjs().startOf('day')}
-                                    />
-                                </Form.Item>
-                            </Col>
-
-                            <Col xs={24} md={12}>
-                                <Form.Item
-                                    name="deliveryHour"
-                                    label="Horario de Entrega"
-                                    rules={[{ required: true, message: 'Selecciona un horario' }]}
-                                >
-                                    <Select placeholder="Selecciona un horario">
-                                        {hourBlocks.map((hour) => (
-                                            <Option key={hour} value={hour}>
-                                                {hour}
-                                            </Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                        </Row>
+                        <Form.Item noStyle shouldUpdate>
+                            {({ getFieldValue }) => {
+                                const isDelivery = getFieldValue('deliveryType') === 'delivery';
+                                return (
+                                    <Row gutter={16}>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                name="deliveryDay"
+                                                label="Día de Entrega"
+                                                rules={[{ required: isDelivery, message: 'Selecciona el día de entrega' }]}
+                                            >
+                                                <DatePicker
+                                                    format="YYYY-MM-DD"
+                                                    style={{ width: '100%' }}
+                                                    placeholder="Selecciona una fecha"
+                                                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                name="deliveryHour"
+                                                label="Horario de Entrega"
+                                                rules={[{ required: isDelivery, message: 'Selecciona un horario' }]}
+                                            >
+                                                <Select placeholder="Selecciona un horario" disabled={!isDelivery}>
+                                                    {hourBlocks.map((hour) => (
+                                                        <Option key={hour} value={hour}>
+                                                            {hour}
+                                                        </Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                );
+                            }}
+                        </Form.Item>
 
                         <Form.Item
                             name="shippingCost"

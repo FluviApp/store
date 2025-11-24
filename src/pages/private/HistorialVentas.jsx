@@ -159,7 +159,7 @@ const HistorialVentas = () => {
         tarjeta_local: 'tarjeta',
         otro: 'otro',
     };
-    const reverseDeliveryTypeMap = { domicilio: 'delivery', retiro: 'pickup' };
+    const reverseDeliveryTypeMap = { domicilio: 'delivery', local: 'local' };
 
     const paymentMethodMap = {
         efectivo: 'efectivo',
@@ -169,7 +169,7 @@ const HistorialVentas = () => {
         tarjeta: 'tarjeta_local',
         otro: 'otro',
     };
-    const deliveryTypeMap = { delivery: 'domicilio', pickup: 'retiro' };
+    const deliveryTypeMap = { delivery: 'domicilio', local: 'local' };
 
     const hourBlocks = React.useMemo(() =>
         Array.from({ length: 24 }, (_, i) => {
@@ -394,9 +394,9 @@ const HistorialVentas = () => {
             render: (type) => {
                 const deliveryTypeStyles = {
                     domicilio: { label: 'Despacho', color: 'geekblue' },
-                    retiro: { label: 'Retiro', color: 'cyan' },
+                    local: { label: 'Local', color: 'cyan' },
                     delivery: { label: 'Despacho', color: 'geekblue' },
-                    pickup: { label: 'Retiro', color: 'cyan' },
+                    mostrador: { label: 'Local', color: 'cyan' },
                 };
                 const { label, color } =
                     deliveryTypeStyles[type] || { label: type || '—', color: 'default' };
@@ -568,7 +568,7 @@ const HistorialVentas = () => {
                         }}
                     >
                         <Select.Option value="domicilio">Despacho</Select.Option>
-                        <Select.Option value="retiro">Retiro</Select.Option>
+                        <Select.Option value="local">Local</Select.Option>
                     </Select>
 
 
@@ -615,7 +615,7 @@ const HistorialVentas = () => {
                                 refetch();
                             }}
                         >
-                            Entrega: {queryParams.deliveryType === 'domicilio' ? 'Despacho' : 'Retiro'}
+                            Entrega: {queryParams.deliveryType === 'domicilio' ? 'Despacho' : 'Local'}
                         </Tag>
                     )}
                 </div>
@@ -637,9 +637,9 @@ const HistorialVentas = () => {
                             // Map de tipo de entrega (acepta dos convenciones)
                             const deliveryTypeStyles = {
                                 domicilio: { label: 'Despacho', color: 'geekblue' },
-                                retiro: { label: 'Retiro', color: 'cyan' },
+                                local: { label: 'Local', color: 'cyan' },
                                 delivery: { label: 'Despacho', color: 'geekblue' },
-                                pickup: { label: 'Retiro', color: 'cyan' },
+                                mostrador: { label: 'Local', color: 'cyan' },
                             };
                             const deliveryKey =
                                 venta.deliveryType || venta.delivery_type || venta.delivery; // fallbacks
@@ -967,38 +967,45 @@ const HistorialVentas = () => {
 
                         <Form.Item name="deliveryType" label="Tipo de Entrega" rules={[{ required: true }]}>
                             <Radio.Group>
-                                <Radio value="pickup">Retiro</Radio>
+                                <Radio value="local">Local</Radio>
                                 <Radio value="delivery">Despacho</Radio>
                             </Radio.Group>
                         </Form.Item>
 
-                        <Row gutter={16}>
-                            <Col xs={24} md={12}>
-                                <Form.Item
-                                    name="deliveryDay"
-                                    label="Día de Entrega"
-                                    rules={[{ required: true, message: 'Selecciona el día de entrega' }]}
-                                >
-                                    <DatePicker
-                                        format="YYYY-MM-DD"
-                                        style={{ width: '100%' }}
-                                        placeholder="Selecciona una fecha"
-                                        disabledDate={(current) => current && current < dayjs().startOf('day')}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col xs={24} md={12}>
-                                <Form.Item
-                                    name="deliveryHour"
-                                    label="Horario de Entrega"
-                                    rules={[{ required: true, message: 'Selecciona un horario' }]}
-                                >
-                                    <Select placeholder="Selecciona un horario">
-                                        {hourBlocks.map((h) => <Select.Option key={h} value={h}>{h}</Select.Option>)}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                        </Row>
+                        <Form.Item noStyle shouldUpdate>
+                            {({ getFieldValue }) => {
+                                const isDelivery = getFieldValue('deliveryType') === 'delivery';
+                                return (
+                                    <Row gutter={16}>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                name="deliveryDay"
+                                                label="Día de Entrega"
+                                                rules={[{ required: isDelivery, message: 'Selecciona el día de entrega' }]}
+                                            >
+                                                <DatePicker
+                                                    format="YYYY-MM-DD"
+                                                    style={{ width: '100%' }}
+                                                    placeholder="Selecciona una fecha"
+                                                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                name="deliveryHour"
+                                                label="Horario de Entrega"
+                                                rules={[{ required: isDelivery, message: 'Selecciona un horario' }]}
+                                            >
+                                                <Select placeholder="Selecciona un horario" disabled={!isDelivery}>
+                                                    {hourBlocks.map((h) => <Select.Option key={h} value={h}>{h}</Select.Option>)}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                );
+                            }}
+                        </Form.Item>
 
                         <Form.Item
                             name="shippingCost"
