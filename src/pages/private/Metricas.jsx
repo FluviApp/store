@@ -42,6 +42,7 @@ const Metricas = () => {
     const {
         useDashboardMetrics,
         useSalesTrend,
+        useLocalSalesTrend,
         usePaymentMethodMetrics,
         useOrdersByDay,
         useGeneralMetrics
@@ -49,6 +50,7 @@ const Metricas = () => {
 
     const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboardMetrics(selectedPeriod);
     const { data: trendData, isLoading: trendLoading } = useSalesTrend(selectedPeriod);
+    const { data: localSalesData, isLoading: localSalesLoading } = useLocalSalesTrend(selectedPeriod);
     const { data: paymentData, isLoading: paymentLoading } = usePaymentMethodMetrics(selectedPeriod);
     const { data: ordersByDayData, isLoading: ordersByDayLoading } = useOrdersByDay(selectedPeriod);
     const { data: generalData, isLoading: generalLoading } = useGeneralMetrics();
@@ -86,6 +88,38 @@ const Metricas = () => {
             ]
         };
     }, [trendData]);
+
+    // Configuración del gráfico de ventas en local
+    const localSalesConfig = useMemo(() => {
+        if (!localSalesData?.data) return null;
+
+        const labels = localSalesData.data.map(item => {
+            if (!item.period) return 'Sin fecha';
+
+            const [year, month, day] = item.period.split('-');
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit'
+            });
+        });
+
+        const salesData = localSalesData.data.map(item => item.totalSales);
+
+        return {
+            labels,
+            datasets: [
+                {
+                    label: 'Ventas en Local ($)',
+                    data: salesData,
+                    borderColor: 'rgb(255, 159, 64)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                    tension: 0.4,
+                    fill: true,
+                }
+            ]
+        };
+    }, [localSalesData]);
 
     // Configuración del gráfico de métodos de pago
     const paymentMethodConfig = useMemo(() => {
@@ -376,6 +410,44 @@ const Metricas = () => {
                             ) : (
                                 <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {paymentLoading ? <Spin size="large" /> : <Text type="secondary">No hay datos disponibles</Text>}
+                                </div>
+                            )}
+                        </Card>
+                    </Col>
+                </Row>
+
+                {/* Gráfico de Ventas en Local */}
+                <Row gutter={[16, 16]} className="mb-6">
+                    <Col xs={24}>
+                        <Card title="Ventas en Local" extra={<LineChartOutlined />}>
+                            {localSalesConfig ? (
+                                <Line
+                                    data={localSalesConfig}
+                                    options={{
+                                        responsive: true,
+                                        plugins: {
+                                            legend: {
+                                                position: 'top',
+                                            },
+                                            title: {
+                                                display: false,
+                                            },
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: {
+                                                    callback: function (value) {
+                                                        return '$' + value.toLocaleString('es-CL');
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }}
+                                />
+                            ) : (
+                                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {localSalesLoading ? <Spin size="large" /> : <Text type="secondary">No hay datos disponibles</Text>}
                                 </div>
                             )}
                         </Card>

@@ -21,6 +21,10 @@ class MetricsService {
     getSalesTrend = (storeId, period = '30d') =>
         instance.get(`/store/metrics/trends/${storeId}`, { params: { period } });
 
+    // 🏪 Tendencias de ventas en local
+    getLocalSalesTrend = (storeId, period = '30d') =>
+        instance.get(`/store/metrics/local-sales/${storeId}`, { params: { period } });
+
     // 🕐 Métricas por hora
     getHourlyMetrics = (storeId, period = '7d') =>
         instance.get(`/store/metrics/hourly/${storeId}`, { params: { period } });

@@ -67,6 +67,19 @@ export const useSalesTrend = (period = '30d') => {
     });
 };
 
+// 🏪 Hook para tendencias de ventas en local
+export const useLocalSalesTrend = (period = '30d') => {
+    const { user } = useAuth();
+
+    return useQuery({
+        queryKey: ['localSalesTrend', user?.storeId, period],
+        queryFn: () => Metrics.getLocalSalesTrend(user?.storeId, period),
+        enabled: !!user?.storeId,
+        staleTime: 5 * 60 * 1000,
+        cacheTime: 10 * 60 * 1000,
+    });
+};
+
 // 🕐 Hook para métricas por hora
 export const useHourlyMetrics = (period = '7d') => {
     const { user } = useAuth();
@@ -164,6 +177,7 @@ export default {
     useCustomerMetrics,
     useTopProducts,
     useSalesTrend,
+    useLocalSalesTrend,
     useHourlyMetrics,
     useGeographicMetrics,
     usePaymentMethodMetrics,
