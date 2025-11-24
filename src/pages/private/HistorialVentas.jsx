@@ -122,12 +122,20 @@ const HistorialVentas = () => {
 
 
     const { data, isLoading, refetch } = useOrders({ ...queryParams, page, limit });
-    console.log(data)
+    console.log('🔍 QueryParams enviados:', queryParams);
+    console.log('🔍 Data recibida:', data);
+    console.log('🔍 Ventas encontradas:', data?.data?.docs?.length || 0);
+    console.log('🔍 Ventas con deliveryType local:', data?.data?.docs?.filter(v => v.deliveryType === 'local').length || 0);
     const ventas = data?.data?.docs || [];
     const total = data?.data?.totalDocs ?? data?.data?.total ?? 0;
 
     const filteredVentas = searchText
-        ? ventas.filter(p => p.customer?.name?.toLowerCase().includes(searchText.toLowerCase()))
+        ? ventas.filter(p => {
+            // Si es pedido local, incluirlo siempre (no tiene cliente)
+            if (p.deliveryType === 'local') return true;
+            // Para otros pedidos, filtrar por nombre de cliente
+            return p.customer?.name?.toLowerCase().includes(searchText.toLowerCase());
+        })
         : ventas;
 
 
@@ -357,11 +365,36 @@ const HistorialVentas = () => {
 
 
     const columns = [
-        { title: 'Teléfono', dataIndex: ['customer', 'phone'] },
+        {
+            title: 'Cliente',
+            dataIndex: ['customer', 'name'],
+            render: (name, record) => {
+                // Si es pedido local, mostrar "Local"
+                if (record.deliveryType === 'local') {
+                    return <span style={{ color: '#1890ff', fontWeight: 500 }}>Local</span>;
+                }
+                return name || '—';
+            },
+        },
+        {
+            title: 'Teléfono',
+            dataIndex: ['customer', 'phone'],
+            render: (phone, record) => {
+                // Si es pedido local, mostrar "—"
+                if (record.deliveryType === 'local') {
+                    return '—';
+                }
+                return phone || '—';
+            },
+        },
         {
             title: 'Dirección',
             dataIndex: ['customer', 'address'],
             render: (address, record) => {
+                // Si es pedido local, mostrar "Local"
+                if (record.deliveryType === 'local') {
+                    return <span style={{ color: '#1890ff', fontWeight: 500 }}>Local</span>;
+                }
                 const block = record?.customer?.block ?? record?.customer?.deptoblock;
                 const addr = address || '—';
                 return block ? `${addr} · ${block}` : addr;
@@ -647,22 +680,34 @@ const HistorialVentas = () => {
                                 deliveryTypeStyles[deliveryKey] ||
                                 { label: deliveryKey || '—', color: 'default' };
 
+                            // Determinar si es pedido local
+                            const isLocal = venta.deliveryType === 'local';
+                            
                             return (
-                                <Card key={venta._id} title={venta.customer?.name || 'Sin nombre'}>
+                                <Card key={venta._id} title={isLocal ? 'Venta Local' : (venta.customer?.name || 'Sin nombre')}>
                                     <div className="space-y-2">
                                         <p>
-                                            <strong>Teléfono:</strong> {venta.customer?.phone || '—'}
+                                            <strong>Cliente:</strong>{' '}
+                                            {isLocal ? (
+                                                <span style={{ color: '#1890ff', fontWeight: 500 }}>Local</span>
+                                            ) : (
+                                                venta.customer?.name || '—'
+                                            )}
                                         </p>
                                         <p>
-                                            <p>
-                                                <strong>Dirección:</strong>{' '}
-                                                {(() => {
+                                            <strong>Teléfono:</strong> {isLocal ? '—' : (venta.customer?.phone || '—')}
+                                        </p>
+                                        <p>
+                                            <strong>Dirección:</strong>{' '}
+                                            {isLocal ? (
+                                                <span style={{ color: '#1890ff', fontWeight: 500 }}>Local</span>
+                                            ) : (
+                                                (() => {
                                                     const addr = venta.customer?.address || '—';
                                                     const block = venta.customer?.block ?? venta.customer?.deptoblock;
                                                     return block ? `${addr} · ${block}` : addr;
-                                                })()}
-                                            </p>
-
+                                                })()
+                                            )}
                                         </p>
                                         <p>
                                             <strong>Total:</strong> ${venta.finalPrice?.toLocaleString('es-CL') ?? 0}
