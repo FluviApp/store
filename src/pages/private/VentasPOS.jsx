@@ -2,17 +2,14 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import {
-    Input, Button, Card, Select, message, Collapse, Radio, DatePicker, Form, AutoComplete, Drawer, Segmented
+    Input, Button, Card, Select, message, Collapse, DatePicker, Form, AutoComplete, Drawer, Segmented, Skeleton, Empty
 } from 'antd';
 import { useAuth } from '../../context/AuthContext';
 import dayjs from 'dayjs';
 import useOrders from '../../hooks/useOrders.js';
-import useProducts from '../../hooks/useProducts';
+import useProductsForSelect from '../../hooks/useProductsForSelect';
 import OrdersService from '../../services/Orders.js';
-import useClients from '../../hooks/useClients.js'
-import ClientMap from '../../components/ClientMap.jsx';
-// 🆕 Para el autocomplete de dirección
-import { Autocomplete } from '@react-google-maps/api';
+// POS solo local: sin selección de clientes ni mapa
 
 const { Option } = Select;
 const { Panel } = Collapse;
@@ -32,31 +29,15 @@ const VentasPOS = () => {
     const [cliente, setCliente] = useState({ name: '', phone: '' });
     const [selectedProducts, setSelectedProducts] = useState([]);
     const [paymentMethod, setPaymentMethod] = useState(null);
-    const [observation, setObservation] = useState('');
+    // Observación eliminada para simplificar POS local
     const [amountReceived, setAmountReceived] = useState('');
 
     const { data: orderData, refetch } = useOrders({ storeId: user.storeId, origin: 'pos' });
     const ventas = orderData?.data?.docs || [];
 
-    const { data: productData } = useProducts({ storeId: user.storeId, limit: 100 });
-    const products = productData?.data?.docs || [];
     const [productSearch, setProductSearch] = useState('');
     const [gridDensity, setGridDensity] = useState('comfortable'); // 'comfortable' | 'compact'
     const [sortBy, setSortBy] = useState('name_asc'); // name_asc | price_asc | price_desc
-    const filteredProducts = React.useMemo(() => {
-        const list = !productSearch
-            ? products
-            : products.filter(p => (p.name || '').toLowerCase().includes(productSearch.toLowerCase()));
-        const sorted = [...list];
-        if (sortBy === 'name_asc') {
-            sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        } else if (sortBy === 'price_asc') {
-            sorted.sort((a, b) => (a.priceDiscount ?? a.priceBase ?? 0) - (b.priceDiscount ?? b.priceBase ?? 0));
-        } else if (sortBy === 'price_desc') {
-            sorted.sort((a, b) => (b.priceDiscount ?? b.priceBase ?? 0) - (a.priceDiscount ?? a.priceBase ?? 0));
-        }
-        return sorted;
-    }, [products, productSearch, sortBy]);
 
     const [deliveryType, setDeliveryType] = useState('local');
     const [deliveryDate, setDeliveryDate] = useState(null);
@@ -64,17 +45,93 @@ const VentasPOS = () => {
     const [shippingCost, setShippingCost] = useState('');
 
     const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const { data: clientsData, isLoading: isClientsLoading } = useClients({ page: 1, limit: 100 });
-    const clients = clientsData?.data?.docs || [];
+    // POS Local: sin clientes
     const [autocompleteRef, setAutocompleteRef] = useState(null); // 🆕
     const [drawerVisible, setDrawerVisible] = useState(false);
+
+    const getCoverImage = (p) => {
+        // useProductsForSelect normaliza las imágenes
+        // Las imágenes pueden venir como URLs completas (Cloudinary) o rutas relativas
+        let imageUrl = null;
+        
+        // Primero intentar con p.image
+        if (p.image && p.image !== 'null' && p.image !== null && String(p.image).trim() !== '') {
+            imageUrl = p.image;
+        }
+        // Si no, intentar con p.images[0]
+        else if (p.images && Array.isArray(p.images) && p.images.length > 0) {
+            const firstImage = p.images[0];
+            if (firstImage && firstImage !== 'null' && firstImage !== null && String(firstImage).trim() !== '') {
+                imageUrl = firstImage;
+            }
+        }
+        
+        // Si encontramos una URL, verificar si es completa o necesita base URL
+        if (imageUrl) {
+            // Si ya es una URL completa (http/https), usarla directamente
+            if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                return imageUrl;
+            }
+            // Si es una ruta relativa, podría necesitar base URL, pero por ahora la devolvemos tal cual
+            // (Cloudinary normalmente devuelve URLs completas)
+            return imageUrl;
+        }
+        
+        return '/placeholder.jpg';
+    };
+
+    const getDisplayPrice = (p) => {
+        // useProductsForSelect ya normaliza los precios
+        const discount = p.priceDiscount;
+        const base = p.priceBase ?? p.price ?? 0;
+        return Number(discount && discount > 0 ? discount : base);
+    };
+
+    const { data: productData, isLoading: productsLoading } = useProductsForSelect({ storeId: user.storeId, search: productSearch });
+    const products = productData?.data || [];
+    
+    // Debug temporal: verificar estructura completa de productos y packs
+    React.useEffect(() => {
+        if (products.length > 0) {
+            console.log('🔍 TODOS los productos y packs:', products);
+            console.log('🔍 Primer producto/pack completo:', products[0]);
+            console.log('🔍 Claves del primer item:', Object.keys(products[0]));
+            
+            // Buscar un pack específicamente
+            const pack = products.find(p => p.isPack);
+            if (pack) {
+                console.log('📦 Pack encontrado:', pack);
+                console.log('📦 Claves del pack:', Object.keys(pack));
+            }
+            
+            // Buscar un producto específicamente
+            const product = products.find(p => !p.isPack);
+            if (product) {
+                console.log('📦 Producto encontrado:', product);
+                console.log('📦 Claves del producto:', Object.keys(product));
+            }
+        }
+    }, [products]);
+
+    const filteredProducts = React.useMemo(() => {
+        // El filtrado ya se hace en el backend con productSearch, así que solo ordenamos
+        const sorted = [...products];
+        if (sortBy === 'name_asc') {
+            sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (sortBy === 'price_asc') {
+            sorted.sort((a, b) => getDisplayPrice(a) - getDisplayPrice(b));
+        } else if (sortBy === 'price_desc') {
+            sorted.sort((a, b) => getDisplayPrice(b) - getDisplayPrice(a));
+        }
+        return sorted;
+    }, [products, sortBy]);
 
     const handleAddProduct = (productId) => {
         const product = products.find(p => p._id === productId);
         if (!product) return;
         const exists = selectedProducts.find(p => p.productId === productId);
         if (!exists) {
-            const unitPrice = product.priceDiscount ?? product.priceBase ?? 0;
+            const unitPrice = getDisplayPrice(product);
             setSelectedProducts(prev => [...prev, {
                 productId,
                 name: product.name,
@@ -185,7 +242,7 @@ const VentasPOS = () => {
             products,
             price: totalProducts,
             finalPrice,
-            merchantObservation: observation || '',
+            // merchantObservation removido en POS local
             deliveryDate: dayjs(deliveryDate || new Date()).startOf('day').toISOString(),
             deliverySchedule:
                 deliveryType === 'domicilio'
@@ -214,7 +271,6 @@ const VentasPOS = () => {
             message.success('Venta registrada');
             setSelectedProducts([]);
             setPaymentMethod(null);
-            setObservation('');
             setAmountReceived('');
             setSelectedCustomer(null);
             setDeliveryDate(null);
@@ -283,42 +339,49 @@ const VentasPOS = () => {
                             ]}
                         />
                     </div>
-                    <div className={gridDensity === 'compact'
-                        ? 'grid grid-cols-2 lg:grid-cols-4 gap-3'
-                        : 'grid grid-cols-2 md:grid-cols-3 gap-4'}>
-                        {filteredProducts.map(p => (
-                            <Card
-                                key={p._id}
-                                hoverable
-                                onClick={() => handleAddProduct(p._id)}
-                                className="cursor-pointer rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition"
-                                cover={
-                                    <div className="relative">
-                                        <img alt={p.name} src={p.image || '/placeholder.jpg'} className="h-36 w-full object-cover" />
-                                        {(p.priceDiscount && p.priceDiscount > 0) && (
-                                            <span className="absolute top-2 left-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded-full shadow">
-                                                Oferta
+                    {productsLoading && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <Card key={`sk-${i}`} className="rounded-2xl border border-gray-100">
+                                    <Skeleton.Image style={{ width: '100%', height: 120 }} active />
+                                    <div className="mt-3">
+                                        <Skeleton active paragraph={{ rows: 1 }} title />
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                    {!productsLoading && filteredProducts.length === 0 && (
+                        <Empty description="Sin productos para mostrar" />
+                    )}
+                        <div className={gridDensity === 'compact'
+                            ? 'grid grid-cols-2 lg:grid-cols-4 gap-3'
+                            : 'grid grid-cols-2 md:grid-cols-3 gap-4'}>
+                            {filteredProducts.map(p => (
+                                <Card
+                                    key={p._id}
+                                    hoverable
+                                    onClick={() => handleAddProduct(p._id)}
+                                    className="cursor-pointer rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition"
+                                    bodyStyle={{ padding: '10px 12px 12px' }}
+                                    cover={
+                                        <div className="relative">
+                                            <img alt={p.name} src={getCoverImage(p)} className="h-40 w-full object-cover" />
+                                            {p.priceDiscount > 0 && (
+                                                <span className="absolute top-2 left-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded-full shadow">
+                                                    Oferta
+                                                </span>
+                                            )}
+                                            <span className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded-full text-sm font-semibold text-slate-900 border border-gray-200 shadow">
+                                                ${getDisplayPrice(p).toLocaleString('es-CL')}
                                             </span>
-                                        )}
-                                    </div>
-                                }
-                            >
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="font-medium text-slate-800 line-clamp-2">{p.name}</div>
-                                    <div className="text-right">
-                                        <div className="font-bold text-slate-900">
-                                            ${((p.priceDiscount ?? p.priceBase) ?? 0).toLocaleString('es-CL')}
                                         </div>
-                                        {p.priceDiscount && (
-                                            <div className="text-xs text-gray-400 line-through">
-                                                ${Number(p.priceBase ?? 0).toLocaleString('es-CL')}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </Card>
-                        ))}
-                    </div>
+                                    }
+                                >
+                                    <div className="font-semibold text-slate-900 leading-snug">{p.name}</div>
+                                </Card>
+                            ))}
+                        </div>
                 </div>
 
                 <Drawer
@@ -355,9 +418,16 @@ const VentasPOS = () => {
                                 hoverable
                                 onClick={() => handleAddProduct(p._id)}
                                 className="cursor-pointer rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition"
-                                cover={<img alt={p.name} src={p.image || '/placeholder.jpg'} className="h-32 w-full object-cover" />}
+                                cover={
+                                    <div className="relative">
+                                        <img alt={p.name} src={getCoverImage(p)} className="h-32 w-full object-cover" />
+                                        <span className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded-full text-xs font-semibold text-slate-900 border border-gray-200 shadow">
+                                            ${getDisplayPrice(p).toLocaleString('es-CL')}
+                                        </span>
+                                    </div>
+                                }
                             >
-                                <Card.Meta title={p.name} description={`$${p.priceBase}`} />
+                                <div className="font-semibold text-slate-900 line-clamp-2">{p.name}</div>
                             </Card>
                         ))}
                     </div>
@@ -367,115 +437,15 @@ const VentasPOS = () => {
                 {/* Panel derecho: carrito */}
                 <div className="flex-1 bg-white/70 backdrop-blur-md flex flex-col justify-between h-screen relative overflow-y-auto border-l border-gray-100">
                     <div className="p-6 overflow-y-auto pb-40">
-                        <div className="mb-4">
-                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">Punto de Venta</h1>
-                            <p className="text-slate-500">Registra ventas en Local o despachos con una experiencia moderna.</p>
+                        <div className="mb-5">
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Punto de Venta</h1>
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">Local</span>
+                            </div>
+                            <p className="text-slate-500 mt-1">Registra ventas en local con una experiencia moderna.</p>
                         </div>
 
-                        {/* Cliente */}
-                        <div className="mb-4">
-                            <Button onClick={() => setCliente({ name: '', phone: '' })} className="rounded-full">+ Agregar Cliente</Button>
-                        </div>
-
-                        <Form.Item label="Cliente" required>
-                            <Select
-                                showSearch
-                                placeholder="Buscar cliente por nombre"
-                                optionFilterProp="label"
-                                onChange={(value) => {
-                                    const client = clients.find(c => c._id === value);
-                                    if (client) {
-                                        setSelectedCustomer({
-                                            id: client._id,
-                                            name: client.name,
-                                            phone: client.phone,
-                                            address: client.address,
-                                            lat: client.lat,
-                                            lon: client.lon,
-                                            observations: '',
-                                            notificationToken: client.token,
-                                        });
-                                    }
-                                }}
-                                filterOption={(input, option) =>
-                                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                                }
-                                loading={isClientsLoading}
-                                value={selectedCustomer?.id}
-                            >
-                                {clients.map(client => (
-                                    <Option
-                                        key={client._id}
-                                        value={client._id}
-                                        label={`${client.name} - ${client.phone}`}
-                                    >
-                                        {client.name} - {client.phone}
-                                    </Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                        {selectedCustomer && (
-                            <Card
-                                size="small"
-                                title="Cliente Seleccionado"
-                                className="mb-4 rounded-2xl border border-gray-100 shadow-sm"
-                                extra={
-                                    <Button
-                                        type="text"
-                                        danger
-                                        onClick={() => setSelectedCustomer(null)}
-                                    >
-                                        Quitar
-                                    </Button>
-                                }
-                            >
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Input
-                                        value={selectedCustomer.name}
-                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, name: e.target.value }))}
-                                        placeholder="Nombre"
-                                        addonBefore="👤"
-                                    />
-
-                                    <Input
-                                        value={selectedCustomer.phone}
-                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, phone: e.target.value }))}
-                                        placeholder="Teléfono"
-                                        addonBefore="📞"
-                                    />
-
-                                    <div className="col-span-2">
-                                        <Autocomplete onLoad={ref => setAutocompleteRef(ref)} onPlaceChanged={handlePlaceChanged}>
-                                            <Input
-                                                value={selectedCustomer.address}
-                                                onChange={(e) =>
-                                                    setSelectedCustomer(prev => ({ ...prev, address: e.target.value }))
-                                                }
-                                                placeholder="Dirección"
-                                                addonBefore="📍"
-                                            />
-                                        </Autocomplete>
-                                    </div>
-
-                                    {typeof selectedCustomer.lat === 'number' && typeof selectedCustomer.lon === 'number' && (
-                                        <div className="col-span-2 border border-gray-100 rounded-xl overflow-hidden shadow-sm" style={{ height: '220px' }}>
-                                            <ClientMap
-                                                lat={selectedCustomer.lat}
-                                                lng={selectedCustomer.lon}
-                                                draggable={true}
-                                                onDragEnd={(lat, lng) =>
-                                                    setSelectedCustomer(prev => ({
-                                                        ...prev,
-                                                        lat,
-                                                        lon: lng,
-                                                    }))
-                                                }
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </Card>
-                        )}
+                        {/* POS Local: sin cliente / dirección */}
                         <div className="md:hidden p-2">
                             <Button type="primary" onClick={() => setDrawerVisible(true)} block className="rounded-full">
                                 Ver Productos
@@ -537,14 +507,7 @@ const VentasPOS = () => {
                             </Collapse>
                         </div>
 
-                        {/* Tipo de entrega */}
-                        <div className="mb-4">
-                            <div className="text-sm text-gray-500 mb-2">Tipo de entrega</div>
-                            <Radio.Group value={deliveryType} onChange={e => setDeliveryType(e.target.value)}>
-                                <Radio value="local">Local</Radio>
-                                <Radio value="domicilio">Despacho</Radio>
-                            </Radio.Group>
-                        </div>
+                        {/* Tipo de entrega omitido: POS siempre Local */}
 
                         {(deliveryType === 'domicilio') && (
                             <div className="mb-6 grid grid-cols-1 gap-4">
@@ -576,27 +539,9 @@ const VentasPOS = () => {
                             </div>
                         )}
 
-                        <div className="mb-6">
-                            <Input.TextArea
-                                rows={2}
-                                placeholder="Observación general (opcional)"
-                                value={observation}
-                                onChange={e => setObservation(e.target.value)}
-                            />
-                        </div>
+                        
 
-                        <div className="mb-4">
-                            <Select
-                                className="w-full"
-                                placeholder="Método de Pago"
-                                value={paymentMethod}
-                                onChange={setPaymentMethod}
-                            >
-                                {paymentMethods.map(m => (
-                                    <Option key={m} value={m}>{m}</Option>
-                                ))}
-                            </Select>
-                        </div>
+                        
 
                         <div className="mb-4">
                             <div className="text-sm text-gray-500 mb-2">Método de pago</div>
@@ -607,7 +552,8 @@ const VentasPOS = () => {
                                         type={paymentMethod === m ? 'primary' : 'default'}
                                         onClick={() => setPaymentMethod(m)}
                                         block
-                                        className={paymentMethod === m ? 'shadow-md' : 'bg-white'}
+                                        shape="round"
+                                        className={`${paymentMethod === m ? 'shadow-md' : 'bg-white hover:bg-slate-50'} transition`}
                                     >
                                         {m === 'efectivo' && '💵 '}
                                         {m === 'transferencia' && '🏦 '}
@@ -622,14 +568,24 @@ const VentasPOS = () => {
                                 value={amountReceived}
                                 onChange={e => setAmountReceived(e.target.value)}
                                 addonBefore="$"
+                                size="large"
+                                className="rounded-full bg-slate-50"
                             />
                         </div>
 
-                        <div className="mb-6">
-                            <div>Subtotal: ${subtotal.toFixed(0)}</div>
-                            <div>Impuesto: ${tax.toFixed(0)}</div>
-                            <div className="font-bold text-lg">Total: ${total.toFixed(0)}</div>
-                            <div className="text-green-600 font-semibold mt-2">Vuelto: ${vuelto.toFixed(0)}</div>
+                        <div className="mb-6 space-y-1">
+                            <div className="flex justify-between text-slate-600">
+                                <span>Subtotal</span><span>${subtotal.toFixed(0)}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600">
+                                <span>Impuesto</span><span>${tax.toFixed(0)}</span>
+                            </div>
+                            <div className="flex justify-between font-semibold text-slate-900">
+                                <span>Total</span><span>${total.toFixed(0)}</span>
+                            </div>
+                            <div className="flex justify-between text-emerald-600 font-semibold">
+                                <span>Vuelto</span><span>${vuelto.toFixed(0)}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -642,7 +598,7 @@ const VentasPOS = () => {
                             <Button type="default" block className="rounded-full">
                                 Guardar (pendiente)
                             </Button>
-                            <Button type="primary" block onClick={handleSubmit} className="rounded-full shadow-md">
+                            <Button type="primary" block onClick={handleSubmit} className="rounded-full shadow-md bg-gradient-to-r from-blue-600 to-indigo-600">
                                 Cobrar
                             </Button>
                         </div>
