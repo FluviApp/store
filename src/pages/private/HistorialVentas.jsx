@@ -133,8 +133,10 @@ const HistorialVentas = () => {
         ? ventas.filter(p => {
             // Si es pedido local, incluirlo siempre (no tiene cliente)
             if (p.deliveryType === 'local') return true;
-            // Para otros pedidos, filtrar por nombre de cliente
-            return p.customer?.name?.toLowerCase().includes(searchText.toLowerCase());
+            // Para otros pedidos, filtrar por teléfono o dirección
+            const searchLower = searchText.toLowerCase();
+            return p.customer?.phone?.toLowerCase().includes(searchLower) ||
+                p.customer?.address?.toLowerCase().includes(searchLower);
         })
         : ventas;
 
@@ -365,17 +367,6 @@ const HistorialVentas = () => {
 
 
     const columns = [
-        {
-            title: 'Cliente',
-            dataIndex: ['customer', 'name'],
-            render: (name, record) => {
-                // Si es pedido local, mostrar "Local"
-                if (record.deliveryType === 'local') {
-                    return <span style={{ color: '#1890ff', fontWeight: 500 }}>Local</span>;
-                }
-                return name || '—';
-            },
-        },
         {
             title: 'Teléfono',
             dataIndex: ['customer', 'phone'],
@@ -654,7 +645,7 @@ const HistorialVentas = () => {
                 </div>
 
                 <Search
-                    placeholder="Buscar cliente"
+                    placeholder="Buscar por teléfono o dirección"
                     allowClear
                     enterButton={<SearchOutlined />}
                     size="large"
@@ -682,18 +673,10 @@ const HistorialVentas = () => {
 
                             // Determinar si es pedido local
                             const isLocal = venta.deliveryType === 'local';
-                            
+
                             return (
-                                <Card key={venta._id} title={isLocal ? 'Venta Local' : (venta.customer?.name || 'Sin nombre')}>
+                                <Card key={venta._id} title={isLocal ? 'Venta Local' : 'Pedido'}>
                                     <div className="space-y-2">
-                                        <p>
-                                            <strong>Cliente:</strong>{' '}
-                                            {isLocal ? (
-                                                <span style={{ color: '#1890ff', fontWeight: 500 }}>Local</span>
-                                            ) : (
-                                                venta.customer?.name || '—'
-                                            )}
-                                        </p>
                                         <p>
                                             <strong>Teléfono:</strong> {isLocal ? '—' : (venta.customer?.phone || '—')}
                                         </p>
