@@ -312,14 +312,14 @@ const VentasPOS = () => {
                 {/* Panel izquierdo: productos (solo visible en desktop) */}
                 <div className="hidden md:block w-3/5 p-6 overflow-y-auto">
                     <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
-                        <Input.Search
-                            placeholder="Buscar productos"
-                            allowClear
+                    <Input.Search
+                        placeholder="Buscar productos"
+                        allowClear
                             onSearch={setProductSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
                             value={productSearch}
                             className="flex-1"
-                        />
+                    />
                         <Select
                             placeholder="Ordenar"
                             value={sortBy}
@@ -358,10 +358,10 @@ const VentasPOS = () => {
                             ? 'grid grid-cols-2 lg:grid-cols-4 gap-3'
                             : 'grid grid-cols-2 md:grid-cols-3 gap-4'}>
                             {filteredProducts.map(p => (
-                                <Card
-                                    key={p._id}
-                                    hoverable
-                                    onClick={() => handleAddProduct(p._id)}
+                            <Card
+                                key={p._id}
+                                hoverable
+                                onClick={() => handleAddProduct(p._id)}
                                     className="cursor-pointer rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition"
                                     bodyStyle={{ padding: '10px 12px 12px' }}
                                     cover={
@@ -379,9 +379,9 @@ const VentasPOS = () => {
                                     }
                                 >
                                     <div className="font-semibold text-slate-900 leading-snug">{p.name}</div>
-                                </Card>
-                            ))}
-                        </div>
+                            </Card>
+                        ))}
+                    </div>
                 </div>
 
                 <Drawer
@@ -393,9 +393,9 @@ const VentasPOS = () => {
                     className="md:hidden"
                 >
                     <div className="flex gap-2 mb-4">
-                        <Input.Search
-                            placeholder="Buscar productos"
-                            allowClear
+                    <Input.Search
+                        placeholder="Buscar productos"
+                        allowClear
                             onSearch={setProductSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
                             value={productSearch}
@@ -562,7 +562,7 @@ const VentasPOS = () => {
                                         {m.charAt(0).toUpperCase() + m.slice(1)}
                                     </Button>
                                 ))}
-                            </div>
+                        </div>
                             <Input
                                 placeholder="Monto recibido"
                                 value={amountReceived}
@@ -597,10 +597,10 @@ const VentasPOS = () => {
                         <div className="flex gap-4">
                             <Button type="default" block className="rounded-full">
                                 Guardar (pendiente)
-                            </Button>
+                        </Button>
                             <Button type="primary" block onClick={handleSubmit} className="rounded-full shadow-md bg-gradient-to-r from-blue-600 to-indigo-600">
                                 Cobrar
-                            </Button>
+                        </Button>
                         </div>
                     </div>
                 </div>

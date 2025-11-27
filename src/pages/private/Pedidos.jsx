@@ -272,7 +272,7 @@ const Pedidos = () => {
                     payload.deliveryPerson = {
                         id: values.dealerId,
                         name: dealers.find(d => d._id === values.dealerId)?.name || '',
-                    };
+            };
                 }
             }
 
@@ -280,7 +280,7 @@ const Pedidos = () => {
             console.log('🆔 ID (selectedCustomer):', selectedCustomer?.id);
             console.log('📧 Email (selectedCustomer):', selectedCustomer?.email);
             if (payload.customer) {
-                console.log('📦 Payload.customer:', { id: payload.customer.id, email: payload.customer.email });
+            console.log('📦 Payload.customer:', { id: payload.customer.id, email: payload.customer.email });
             }
 
             const res = editingOrder
@@ -666,105 +666,105 @@ const Pedidos = () => {
                                 if (!isDelivery) return null;
                                 return (
                                     <>
-                                        <Form.Item label="Cliente" required>
-                                            <Select
-                                                showSearch
-                                                placeholder="Buscar cliente por dirección"
-                                                optionFilterProp="label"
-                                                onChange={(value) => {
-                                                    const client = clients.find(c => c._id === value);
-                                                    if (client) {
-                                                        const block = client.block ?? client.deptoblock ?? '';
-                                                        setSelectedCustomer({
-                                                            id: client._id,
-                                                            name: client.name,
-                                                            email: client.email,
-                                                            phone: client.phone,
-                                                            address: client.address,
-                                                            lat: client.lat,
-                                                            lon: client.lon,
-                                                            observations: '',
-                                                            notificationToken: client.token,
-                                                            block,
-                                                        });
-                                                    }
-                                                }}
-                                                filterOption={(input, option) =>
-                                                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                                                }
-                                                loading={isClientsLoading}
-                                                value={selectedCustomer?.id}
-                                            >
-                                                {clients.map(client => {
-                                                    const block = client.block ?? client.deptoblock;
-                                                    const addressWithBlock = block ? `${client.address} · ${block}` : client.address;
-                                                    return (
-                                                        <Option
-                                                            key={client._id}
-                                                            value={client._id}
-                                                            label={addressWithBlock}
-                                                        >
-                                                            {addressWithBlock}
-                                                        </Option>
-                                                    );
-                                                })}
-                                            </Select>
-                                        </Form.Item>
-                                        {selectedCustomer && (
-                                            <Card
-                                                size="small"
-                                                title="Cliente Seleccionado"
-                                                className="mb-4"
+                        <Form.Item label="Cliente" required>
+                            <Select
+                                showSearch
+                                placeholder="Buscar cliente por dirección"
+                                optionFilterProp="label"
+                                onChange={(value) => {
+                                    const client = clients.find(c => c._id === value);
+                                    if (client) {
+                                        const block = client.block ?? client.deptoblock ?? '';
+                                        setSelectedCustomer({
+                                            id: client._id,
+                                            name: client.name,
+                                            email: client.email,
+                                            phone: client.phone,
+                                            address: client.address,
+                                            lat: client.lat,
+                                            lon: client.lon,
+                                            observations: '',
+                                            notificationToken: client.token,
+                                            block,
+                                        });
+                                    }
+                                }}
+                                filterOption={(input, option) =>
+                                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                                }
+                                loading={isClientsLoading}
+                                value={selectedCustomer?.id}
+                            >
+                                {clients.map(client => {
+                                    const block = client.block ?? client.deptoblock;
+                                    const addressWithBlock = block ? `${client.address} · ${block}` : client.address;
+                                    return (
+                                        <Option
+                                            key={client._id}
+                                            value={client._id}
+                                            label={addressWithBlock}
+                                        >
+                                            {addressWithBlock}
+                                        </Option>
+                                    );
+                                })}
+                            </Select>
+                        </Form.Item>
+                        {selectedCustomer && (
+                            <Card
+                                size="small"
+                                title="Cliente Seleccionado"
+                                className="mb-4"
                                                 extra={<Button type="text" danger onClick={() => setSelectedCustomer(null)}>Quitar</Button>}
-                                            >
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <Input
-                                                        value={selectedCustomer.name}
-                                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, name: e.target.value }))}
-                                                        placeholder="Nombre"
-                                                        addonBefore="👤"
-                                                    />
-                                                    <Input
+                            >
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input
+                                        value={selectedCustomer.name}
+                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, name: e.target.value }))}
+                                        placeholder="Nombre"
+                                        addonBefore="👤"
+                                    />
+                                    <Input
                                                         value={selectedCustomer.email || ''}
-                                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, email: e.target.value }))}
-                                                        placeholder="Correo"
-                                                        addonBefore="✉️"
-                                                    />
-                                                    <Input
-                                                        value={selectedCustomer.phone}
-                                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, phone: e.target.value }))}
-                                                        placeholder="Teléfono"
-                                                        addonBefore="📞"
-                                                    />
-                                                    <div className="col-span-2">
-                                                        <Autocomplete onLoad={ref => setAutocompleteRef(ref)} onPlaceChanged={handlePlaceChanged}>
-                                                            <Input
-                                                                value={selectedCustomer.address}
-                                                                onChange={(e) => setSelectedCustomer(prev => ({ ...prev, address: e.target.value }))}
-                                                                placeholder="Dirección"
-                                                                addonBefore="📍"
-                                                            />
-                                                        </Autocomplete>
-                                                        <Input
-                                                            value={selectedCustomer?.block || ''}
-                                                            onChange={(e) => setSelectedCustomer(prev => ({ ...prev, block: e.target.value }))}
-                                                            placeholder="Depto / Block (opcional)"
-                                                            addonBefore="🏢"
-                                                        />
-                                                    </div>
-                                                    {typeof selectedCustomer.lat === 'number' && typeof selectedCustomer.lon === 'number' && (
-                                                        <div className="col-span-2 border rounded overflow-hidden" style={{ height: '220px' }}>
-                                                            <ClientMap
-                                                                lat={selectedCustomer.lat}
-                                                                lng={selectedCustomer.lon}
-                                                                draggable={true}
-                                                                onDragEnd={(lat, lng) => setSelectedCustomer(prev => ({ ...prev, lat, lon: lng }))}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </Card>
-                                        )}
+                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, email: e.target.value }))}
+                                        placeholder="Correo"
+                                        addonBefore="✉️"
+                                    />
+                                    <Input
+                                        value={selectedCustomer.phone}
+                                        onChange={(e) => setSelectedCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                                        placeholder="Teléfono"
+                                        addonBefore="📞"
+                                    />
+                                    <div className="col-span-2">
+                                        <Autocomplete onLoad={ref => setAutocompleteRef(ref)} onPlaceChanged={handlePlaceChanged}>
+                                            <Input
+                                                value={selectedCustomer.address}
+                                                onChange={(e) => setSelectedCustomer(prev => ({ ...prev, address: e.target.value }))}
+                                                placeholder="Dirección"
+                                                addonBefore="📍"
+                                            />
+                                        </Autocomplete>
+                                        <Input
+                                            value={selectedCustomer?.block || ''}
+                                            onChange={(e) => setSelectedCustomer(prev => ({ ...prev, block: e.target.value }))}
+                                            placeholder="Depto / Block (opcional)"
+                                            addonBefore="🏢"
+                                        />
+                                    </div>
+                                    {typeof selectedCustomer.lat === 'number' && typeof selectedCustomer.lon === 'number' && (
+                                        <div className="col-span-2 border rounded overflow-hidden" style={{ height: '220px' }}>
+                                            <ClientMap
+                                                lat={selectedCustomer.lat}
+                                                lng={selectedCustomer.lon}
+                                                draggable={true}
+                                                onDragEnd={(lat, lng) => setSelectedCustomer(prev => ({ ...prev, lat, lon: lng }))}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </Card>
+                        )}
                                     </>
                                 );
                             }}
@@ -844,37 +844,37 @@ const Pedidos = () => {
                             {({ getFieldValue }) => {
                                 const isDelivery = getFieldValue('deliveryType') === 'delivery';
                                 return (
-                                    <Row gutter={16}>
-                                        <Col xs={24} md={12}>
-                                            <Form.Item
-                                                name="deliveryDay"
-                                                label="Día de Entrega"
+                        <Row gutter={16}>
+                            <Col xs={24} md={12}>
+                                <Form.Item
+                                    name="deliveryDay"
+                                    label="Día de Entrega"
                                                 rules={[{ required: isDelivery, message: 'Selecciona el día de entrega' }]}
-                                            >
-                                                <DatePicker
-                                                    format="YYYY-MM-DD"
-                                                    style={{ width: '100%' }}
-                                                    placeholder="Selecciona una fecha"
-                                                    disabledDate={(current) => current && current < dayjs().startOf('day')}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col xs={24} md={12}>
-                                            <Form.Item
-                                                name="deliveryHour"
-                                                label="Horario de Entrega"
+                                >
+                                    <DatePicker
+                                        format="YYYY-MM-DD"
+                                        style={{ width: '100%' }}
+                                        placeholder="Selecciona una fecha"
+                                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} md={12}>
+                                <Form.Item
+                                    name="deliveryHour"
+                                    label="Horario de Entrega"
                                                 rules={[{ required: isDelivery, message: 'Selecciona un horario' }]}
-                                            >
+                                >
                                                 <Select placeholder="Selecciona un horario" disabled={!isDelivery}>
-                                                    {hourBlocks.map((hour) => (
-                                                        <Option key={hour} value={hour}>
-                                                            {hour}
-                                                        </Option>
-                                                    ))}
-                                                </Select>
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
+                                        {hourBlocks.map((hour) => (
+                                            <Option key={hour} value={hour}>
+                                                {hour}
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
                                 );
                             }}
                         </Form.Item>
@@ -884,23 +884,23 @@ const Pedidos = () => {
                                 const isDelivery = getFieldValue('deliveryType') === 'delivery';
                                 if (!isDelivery) return null;
                                 return (
-                                    <Form.Item
-                                        name="shippingCost"
-                                        label="Costo de Envío"
-                                        rules={[
-                                            { required: false },
-                                            {
-                                                pattern: /^\d+$/,
-                                                message: 'Solo se permiten números sin puntos ni letras',
-                                            },
-                                        ]}
-                                    >
-                                        <Input
-                                            placeholder="Ej: 2000"
-                                            maxLength={6}
-                                            inputMode="numeric"
-                                            addonBefore="$"
-                                        />
+                        <Form.Item
+                            name="shippingCost"
+                            label="Costo de Envío"
+                            rules={[
+                                { required: false },
+                                {
+                                    pattern: /^\d+$/,
+                                    message: 'Solo se permiten números sin puntos ni letras',
+                                },
+                            ]}
+                        >
+                            <Input
+                                placeholder="Ej: 2000"
+                                maxLength={6}
+                                inputMode="numeric"
+                                addonBefore="$"
+                            />
                                     </Form.Item>
                                 );
                             }}
@@ -911,24 +911,24 @@ const Pedidos = () => {
                                 const isDelivery = getFieldValue('deliveryType') === 'delivery';
                                 if (!isDelivery) return null;
                                 return (
-                                    <Form.Item
-                                        name="dealerId"
-                                        label="Repartidor"
-                                        rules={[{ required: false }]}
-                                    >
-                                        <Select
-                                            placeholder="Selecciona un repartidor"
-                                            allowClear
-                                            showSearch
-                                            optionFilterProp="children"
-                                            loading={isLoadingDealers}
-                                        >
-                                            {dealers.map(dealer => (
-                                                <Option key={dealer._id} value={dealer._id}>
-                                                    {dealer.name}
-                                                </Option>
-                                            ))}
-                                        </Select>
+                        <Form.Item
+                            name="dealerId"
+                            label="Repartidor"
+                            rules={[{ required: false }]}
+                        >
+                            <Select
+                                placeholder="Selecciona un repartidor"
+                                allowClear
+                                showSearch
+                                optionFilterProp="children"
+                                loading={isLoadingDealers}
+                            >
+                                {dealers.map(dealer => (
+                                    <Option key={dealer._id} value={dealer._id}>
+                                        {dealer.name}
+                                    </Option>
+                                ))}
+                            </Select>
                                     </Form.Item>
                                 );
                             }}

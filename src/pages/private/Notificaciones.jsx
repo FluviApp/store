@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-    Table, Button, Space, Input, Modal, Card, message, Empty, Row, Col
+    Table, Button, Space, Input, Modal, Card, message, Empty, Row, Col, Select
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
 import { useAuth } from '../../context/AuthContext';
 import useNotifications from '../../hooks/useNotifications';
+import useClients from '../../hooks/useClients';
 import Notifications from '../../services/Notifications';
 import Sidebar from '../../components/Sidebar';
 
 const { Search } = Input;
+const { Option } = Select;
 
 const Notificaciones = () => {
     const { user } = useAuth();
@@ -20,10 +22,29 @@ const Notificaciones = () => {
     const { data: notificationsData, refetch, isLoading } = useNotifications();
     const notifications = notificationsData?.data || [];
 
+    // Obtener todos los clientes con token válido
+    const { data: clientsData } = useClients({ page: 1, limit: 1000 });
+    const allClients = clientsData?.data?.docs || [];
+
+    // Filtrar solo clientes con token válido (que empiece con ExponentPushToken)
+    const clientsWithToken = useMemo(() => {
+        return allClients.filter(client => 
+            client.token && 
+            typeof client.token === 'string' && 
+            client.token.trim().startsWith('ExponentPushToken')
+        );
+    }, [allClients]);
+
     const [searchText, setSearchText] = useState('');
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
-    const [formData, setFormData] = useState({ title: '', body: '', token: '', url: '' });
+    const [formData, setFormData] = useState({ 
+        title: '', 
+        body: '', 
+        recipientType: 'ALL', 
+        selectedToken: '', 
+        url: '' 
+    });
 
     const filteredNotifications = searchText
         ? notifications.filter(n => n.title.toLowerCase().includes(searchText.toLowerCase()))
@@ -53,21 +74,36 @@ const Notificaciones = () => {
     const handleOpenModal = (item = null) => {
         setEditingItem(item);
         if (item) {
+            // Si tiene token, es un envío específico, si no, es ALL
+            const hasToken = item.token && item.token.trim().startsWith('ExponentPushToken');
             setFormData({
                 title: item.title,
                 body: item.body,
-                token: item.token || '',
+                recipientType: hasToken ? 'SPECIFIC' : 'ALL',
+                selectedToken: item.token || '',
                 url: item.url || '',
             });
         } else {
-            setFormData({ title: '', body: '', token: '', url: '' });
+            setFormData({ 
+                title: '', 
+                body: '', 
+                recipientType: 'ALL', 
+                selectedToken: '', 
+                url: '' 
+            });
         }
         setIsModalVisible(true);
     };
 
     const handleCloseModal = () => {
         setIsModalVisible(false);
-        setFormData({ title: '', body: '', token: '', url: '' });
+        setFormData({ 
+            title: '', 
+            body: '', 
+            recipientType: 'ALL', 
+            selectedToken: '', 
+            url: '' 
+        });
         setEditingItem(null);
     };
 
@@ -77,8 +113,18 @@ const Notificaciones = () => {
             return;
         }
 
+        // Validar que si es específico, tenga token seleccionado
+        if (formData.recipientType === 'SPECIFIC' && !formData.selectedToken) {
+            message.error('Debes seleccionar un cliente o elegir "Enviar a todos"');
+            return;
+        }
+
         const data = {
-            ...formData,
+            title: formData.title,
+            body: formData.body,
+            url: formData.url || '',
+            recipientType: formData.recipientType,
+            selectedToken: formData.recipientType === 'SPECIFIC' ? formData.selectedToken : undefined,
             storeId: user.storeId,
         };
 
@@ -88,7 +134,12 @@ const Notificaciones = () => {
                 : await Notifications.create(data);
 
             if (response?.success) {
-                message.success(editingItem ? 'Notificación editada correctamente' : 'Notificación creada correctamente');
+                const successMessage = editingItem 
+                    ? 'Notificación editada correctamente' 
+                    : formData.recipientType === 'ALL'
+                        ? `Notificación creada y enviada a ${response.data?.sentCount || clientsWithToken.length} usuarios`
+                        : 'Notificación creada y enviada correctamente';
+                message.success(successMessage);
                 refetch();
                 handleCloseModal();
             } else {
@@ -174,31 +225,88 @@ const Notificaciones = () => {
                     okText={editingItem ? 'Guardar cambios' : 'Crear'}
                     cancelText="Cancelar"
                     title={editingItem ? 'Editar Notificación' : 'Crear Notificación'}
+                    width={600}
                 >
-                    <Input
-                        placeholder="Título"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        className="mb-4"
-                    />
-                    <Input
-                        placeholder="Cuerpo"
-                        value={formData.body}
-                        onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                        className="mb-4"
-                    />
-                    <Input
-                        placeholder="Token (opcional)"
-                        value={formData.token}
-                        onChange={(e) => setFormData({ ...formData, token: e.target.value })}
-                        className="mb-4"
-                    />
-                    <Input
-                        placeholder="URL (opcional)"
-                        value={formData.url}
-                        onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                        className="mb-4"
-                    />
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Título *</label>
+                            <Input
+                                placeholder="Título de la notificación"
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Cuerpo *</label>
+                            <Input.TextArea
+                                placeholder="Mensaje de la notificación"
+                                value={formData.body}
+                                onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                                rows={4}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Tipo de envío *</label>
+                            <Select
+                                style={{ width: '100%' }}
+                                placeholder="Selecciona el tipo de envío"
+                                value={formData.recipientType}
+                                onChange={(value) => {
+                                    setFormData({ 
+                                        ...formData, 
+                                        recipientType: value,
+                                        selectedToken: value === 'ALL' ? '' : formData.selectedToken
+                                    });
+                                }}
+                            >
+                                <Option value="ALL">
+                                    📢 Enviar a todos los usuarios ({clientsWithToken.length} usuarios con token)
+                                </Option>
+                                <Option value="SPECIFIC">
+                                    👤 Enviar a un cliente específico
+                                </Option>
+                            </Select>
+                            {formData.recipientType === 'ALL' && clientsWithToken.length === 0 && (
+                                <p className="text-xs text-yellow-600 mt-1">
+                                    ⚠️ No hay usuarios con tokens de notificación registrados
+                                </p>
+                            )}
+                        </div>
+                        {formData.recipientType === 'SPECIFIC' && (
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Cliente específico *</label>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Selecciona un cliente"
+                                    value={formData.selectedToken}
+                                    onChange={(value) => setFormData({ ...formData, selectedToken: value })}
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        option?.children?.toLowerCase().includes(input.toLowerCase())
+                                    }
+                                >
+                                    {clientsWithToken.map(client => (
+                                        <Option key={client._id} value={client.token}>
+                                            {client.name || 'Sin nombre'} - {client.email}
+                                        </Option>
+                                    ))}
+                                </Select>
+                                {clientsWithToken.length === 0 && (
+                                    <p className="text-xs text-yellow-600 mt-1">
+                                        ⚠️ No hay clientes con tokens de notificación disponibles
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-sm font-medium mb-2">URL (opcional)</label>
+                            <Input
+                                placeholder="URL a abrir al hacer clic (ej: /pedidos-usuario)"
+                                value={formData.url}
+                                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                            />
+                        </div>
+                    </div>
                 </Modal>
             </div>
         </div>
