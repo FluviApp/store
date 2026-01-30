@@ -27,6 +27,7 @@ const ZonasDespacho = () => {
     const [editPolygonCoords, setEditPolygonCoords] = useState([]);
     const [drawingEnabled, setDrawingEnabled] = useState(false);
     const [mapLoaded, setMapLoaded] = useState(false);
+    const [mainMapLoaded, setMainMapLoaded] = useState(false);
     const [customSchedule, setCustomSchedule] = useState(null);
 
     const isMobile = useMediaQuery({ maxWidth: 768 });
@@ -61,21 +62,38 @@ const ZonasDespacho = () => {
                 .map((p) => ({ lat: Number(p?.lat), lng: Number(p?.lng) }))
                 .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
-        return (filteredZonas || [])
+        // El mapa debe mostrar todas las zonas (no depende del buscador de la tabla).
+        return (zonas || [])
             .filter((z) => z?.type === 'area')
             .map((z) => ({ ...z, polygon: normalizePolygon(z?.polygon) }))
             .filter((z) => z.polygon.length >= 3);
-    }, [filteredZonas]);
+    }, [zonas]);
+
+    const getZoneColor = (idx) => {
+        const palette = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#f59e0b', '#0ea5e9'];
+        return palette[idx % palette.length];
+    };
+
+    const fitMainMapToZones = (map, zonesToFit) => {
+        if (!map) return;
+        if (!Array.isArray(zonesToFit) || zonesToFit.length === 0) return;
+        if (!window.google?.maps?.LatLngBounds) return;
+
+        const bounds = new window.google.maps.LatLngBounds();
+        zonesToFit.forEach((z) => z.polygon.forEach((p) => bounds.extend(p)));
+        map.fitBounds(bounds);
+    };
 
     useEffect(() => {
         if (!isLoaded) return;
         if (!mainMapRef.current) return;
-        if (!zonasDeAreaParaMapa.length) return;
-        if (!window.google?.maps?.LatLngBounds) return;
-
-        const bounds = new window.google.maps.LatLngBounds();
-        zonasDeAreaParaMapa.forEach((z) => z.polygon.forEach((p) => bounds.extend(p)));
-        mainMapRef.current.fitBounds(bounds);
+        // A veces el mapa todavía no está “listo” para ajustar bounds (layout/tiles).
+        // Reintento rápido para garantizar que queden visibles.
+        fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
+        const t = setTimeout(() => {
+            fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
+        }, 250);
+        return () => clearTimeout(t);
     }, [isLoaded, zonasDeAreaParaMapa]);
 
     const paginatedZonas = filteredZonas.slice(
@@ -375,6 +393,7 @@ const ZonasDespacho = () => {
                     <Card
                         bordered
                         title="Mapa de zonas (polígonos)"
+                        extra={<span className="text-gray-600">Zonas dibujadas: <strong>{zonasDeAreaParaMapa.length}</strong></span>}
                         className="h-fit"
                     >
                         {!isLoaded ? (
@@ -393,20 +412,33 @@ const ZonasDespacho = () => {
                                     zoom={12}
                                     onLoad={(map) => {
                                         mainMapRef.current = map;
+                                        // Asegura encuadre cuando el mapa ya esté listo.
+                                        fitMainMapToZones(map, zonasDeAreaParaMapa);
+                                        if (window.google?.maps?.event?.addListenerOnce) {
+                                            window.google.maps.event.addListenerOnce(map, 'idle', () => {
+                                                fitMainMapToZones(map, zonasDeAreaParaMapa);
+                                            });
+                                        }
+                                    }}
+                                    onTilesLoaded={() => {
+                                        setMainMapLoaded(true);
+                                        fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
                                     }}
                                     onUnmount={() => {
                                         mainMapRef.current = null;
+                                        setMainMapLoaded(false);
                                     }}
                                 >
-                                    {zonasDeAreaParaMapa.map((zone) => (
+                                    {mainMapLoaded && zonasDeAreaParaMapa.map((zone) => (
                                         <Polygon
                                             key={zone._id}
                                             paths={zone.polygon}
                                             options={{
-                                                fillColor: '#2563eb',
-                                                fillOpacity: 0.2,
-                                                strokeColor: '#2563eb',
-                                                strokeWeight: 2,
+                                                fillColor: getZoneColor(zone._id?.length ? zone._id.length : 0),
+                                                fillOpacity: 0.28,
+                                                strokeColor: getZoneColor(zone._id?.length ? zone._id.length : 0),
+                                                strokeOpacity: 1,
+                                                strokeWeight: 3,
                                                 clickable: true,
                                                 editable: false,
                                                 zIndex: 1,
