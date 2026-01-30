@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Select, Radio } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, AimOutlined } from '@ant-design/icons';
@@ -27,12 +27,14 @@ const ZonasDespacho = () => {
     const [editPolygonCoords, setEditPolygonCoords] = useState([]);
     const [drawingEnabled, setDrawingEnabled] = useState(false);
     const [mapLoaded, setMapLoaded] = useState(false);
+    const [mainMapLoaded, setMainMapLoaded] = useState(false);
     const [customSchedule, setCustomSchedule] = useState(null);
 
     const isMobile = useMediaQuery({ maxWidth: 768 });
     const drawingManagerRef = useRef(null);
     const newPolygonRef = useRef(null);
     const drawnPolygonRef = useRef(null);
+    const mainMapRef = useRef(null);
 
     const { isLoaded } = useJsApiLoader({
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -53,6 +55,46 @@ const ZonasDespacho = () => {
             item.type?.toLowerCase().includes(searchText.toLowerCase())
         )
         : zonas;
+
+    const zonasDeAreaParaMapa = useMemo(() => {
+        const normalizePolygon = (polygon) =>
+            (Array.isArray(polygon) ? polygon : [])
+                .map((p) => ({ lat: Number(p?.lat), lng: Number(p?.lng) }))
+                .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+
+        // El mapa debe mostrar todas las zonas (no depende del buscador de la tabla).
+        return (zonas || [])
+            .filter((z) => z?.type === 'area')
+            .map((z) => ({ ...z, polygon: normalizePolygon(z?.polygon) }))
+            .filter((z) => z.polygon.length >= 3);
+    }, [zonas]);
+
+    const getZoneColor = (idx) => {
+        const palette = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#f59e0b', '#0ea5e9'];
+        return palette[idx % palette.length];
+    };
+
+    const fitMainMapToZones = (map, zonesToFit) => {
+        if (!map) return;
+        if (!Array.isArray(zonesToFit) || zonesToFit.length === 0) return;
+        if (!window.google?.maps?.LatLngBounds) return;
+
+        const bounds = new window.google.maps.LatLngBounds();
+        zonesToFit.forEach((z) => z.polygon.forEach((p) => bounds.extend(p)));
+        map.fitBounds(bounds);
+    };
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        if (!mainMapRef.current) return;
+        // A veces el mapa todavía no está “listo” para ajustar bounds (layout/tiles).
+        // Reintento rápido para garantizar que queden visibles.
+        fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
+        const t = setTimeout(() => {
+            fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
+        }, 250);
+        return () => clearTimeout(t);
+    }, [isLoaded, zonasDeAreaParaMapa]);
 
     const paginatedZonas = filteredZonas.slice(
         (currentPage - 1) * pageSize,
@@ -228,8 +270,9 @@ const ZonasDespacho = () => {
                     } else {
                         message.warning(response.message || 'No se pudo eliminar la zona');
                     }
-                } catch (error) {
-                    message.error('Error al eliminar zona');
+                } catch (err) {
+                    const errorMessage = err?.response?.data?.message || err?.message || 'Error al eliminar zona';
+                    message.error(errorMessage);
                 }
             }
         });
@@ -346,38 +389,101 @@ const ZonasDespacho = () => {
                     />
                 </div>
 
-                <div className="overflow-x-auto">
-                    {isMobile ? (
-                        paginatedZonas.length > 0 ? (
-                            <div className="grid gap-4">
-                                {paginatedZonas.map((zona) => (
-                                    <Card key={zona._id} bordered>
-                                        <p><strong>Tipo:</strong> {zona.type === 'comuna' ? 'Comuna' : 'Área'}</p>
-                                        <p><strong>Costo Despacho:</strong> ${zona.deliveryCost}</p>
-
-                                        <p><strong>Detalle:</strong> {zona.type === 'comuna' ? zona.comuna : `${zona.polygon?.length || 0} puntos`}</p>
-                                        <div className="flex gap-2 mt-2">
-                                            <Button icon={<EditOutlined />} onClick={() => handleEditar(zona)}>Editar</Button>
-                                            <Button danger icon={<DeleteOutlined />} onClick={() => handleEliminar(zona._id)}>Eliminar</Button>
-                                        </div>
-                                    </Card>
-                                ))}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card
+                        bordered
+                        title="Mapa de zonas (polígonos)"
+                        extra={<span className="text-gray-600">Zonas dibujadas: <strong>{zonasDeAreaParaMapa.length}</strong></span>}
+                        className="h-fit"
+                    >
+                        {!isLoaded ? (
+                            <div className="flex justify-center items-center" style={{ height: 450 }}>
+                                <span>Cargando mapa...</span>
+                            </div>
+                        ) : zonasDeAreaParaMapa.length === 0 ? (
+                            <div className="flex justify-center items-center" style={{ height: 450 }}>
+                                <Empty description="No hay zonas de tipo área para dibujar" />
                             </div>
                         ) : (
-                            <div className="flex justify-center items-center min-h-[300px]">
-                                <Empty description="No hay zonas" />
+                            <div className="rounded-lg overflow-hidden" style={{ height: 450 }}>
+                                <GoogleMap
+                                    mapContainerStyle={{ width: '100%', height: '100%' }}
+                                    center={{ lat: -33.45, lng: -70.6667 }}
+                                    zoom={12}
+                                    onLoad={(map) => {
+                                        mainMapRef.current = map;
+                                        // Asegura encuadre cuando el mapa ya esté listo.
+                                        fitMainMapToZones(map, zonasDeAreaParaMapa);
+                                        if (window.google?.maps?.event?.addListenerOnce) {
+                                            window.google.maps.event.addListenerOnce(map, 'idle', () => {
+                                                fitMainMapToZones(map, zonasDeAreaParaMapa);
+                                            });
+                                        }
+                                    }}
+                                    onTilesLoaded={() => {
+                                        setMainMapLoaded(true);
+                                        fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
+                                    }}
+                                    onUnmount={() => {
+                                        mainMapRef.current = null;
+                                        setMainMapLoaded(false);
+                                    }}
+                                >
+                                    {mainMapLoaded && zonasDeAreaParaMapa.map((zone) => (
+                                        <Polygon
+                                            key={zone._id}
+                                            paths={zone.polygon}
+                                            options={{
+                                                fillColor: getZoneColor(zone._id?.length ? zone._id.length : 0),
+                                                fillOpacity: 0.28,
+                                                strokeColor: getZoneColor(zone._id?.length ? zone._id.length : 0),
+                                                strokeOpacity: 1,
+                                                strokeWeight: 3,
+                                                clickable: true,
+                                                editable: false,
+                                                zIndex: 1,
+                                            }}
+                                            onClick={() => handleEditar(zone)}
+                                        />
+                                    ))}
+                                </GoogleMap>
                             </div>
-                        )
-                    ) : (
-                        <Table
-                            dataSource={filteredZonas}
-                            columns={columns}
-                            loading={isLoading}
-                            pagination={{ pageSize }}
-                            bordered
-                            rowKey="_id"
-                        />
-                    )}
+                        )}
+                    </Card>
+
+                    <div className="overflow-x-auto">
+                        {isMobile ? (
+                            paginatedZonas.length > 0 ? (
+                                <div className="grid gap-4">
+                                    {paginatedZonas.map((zona) => (
+                                        <Card key={zona._id} bordered>
+                                            <p><strong>Tipo:</strong> {zona.type === 'comuna' ? 'Comuna' : 'Área'}</p>
+                                            <p><strong>Costo Despacho:</strong> ${zona.deliveryCost}</p>
+
+                                            <p><strong>Detalle:</strong> {zona.type === 'comuna' ? zona.comuna : `${zona.polygon?.length || 0} puntos`}</p>
+                                            <div className="flex gap-2 mt-2">
+                                                <Button icon={<EditOutlined />} onClick={() => handleEditar(zona)}>Editar</Button>
+                                                <Button danger icon={<DeleteOutlined />} onClick={() => handleEliminar(zona._id)}>Eliminar</Button>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex justify-center items-center min-h-[300px]">
+                                    <Empty description="No hay zonas" />
+                                </div>
+                            )
+                        ) : (
+                            <Table
+                                dataSource={filteredZonas}
+                                columns={columns}
+                                loading={isLoading}
+                                pagination={{ pageSize }}
+                                bordered
+                                rowKey="_id"
+                            />
+                        )}
+                    </div>
                 </div>
 
                 <Modal
