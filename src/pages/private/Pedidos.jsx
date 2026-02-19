@@ -215,7 +215,7 @@ const Pedidos = () => {
                 transferencia: 'transferencia',
                 webpay: 'webpay',
                 mercadopago: 'mercadopago',
-                tarjeta: 'tarjeta_local',
+                tarjeta: 'tarjeta',
                 otro: 'otro',
             };
 
@@ -440,6 +440,7 @@ const Pedidos = () => {
         transferencia: { label: 'Transferencia', color: 'blue' },
         webpay: { label: 'WebPay', color: 'purple' },
         mercadopago: { label: 'MercadoPago', color: 'cyan' },
+        tarjeta: { label: 'Tarjeta', color: 'orange' },
         tarjeta_local: { label: 'Tarjeta Local', color: 'orange' },
         otro: { label: 'Otro', color: 'gray' },
     };

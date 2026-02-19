@@ -210,7 +210,7 @@ const VentasPOS = () => {
             transferencia: 'transferencia',
             webpay: 'webpay',
             mercadopago: 'mercadopago',
-            tarjeta: 'tarjeta_local',
+            tarjeta: 'tarjeta',
             otro: 'otro',
         };
 
