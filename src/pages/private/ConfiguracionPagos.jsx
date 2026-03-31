@@ -10,7 +10,6 @@ const METODOS_PAGO = [
     { key: 'efectivo', label: 'Efectivo' },
     { key: 'transferencia', label: 'Transferencia' },
     { key: 'tarjeta', label: 'Tarjeta' },
-    { key: 'webpay', label: 'Webpay' },
     { key: 'mercadopago', label: 'Mercado Pago' },
 ];
 
@@ -22,6 +21,7 @@ const ConfiguracionPagos = () => {
     const { data: storeResp, isLoading, refetch } = useStoreInfo();
     const store = storeResp?.data || null;
     const paymentFees = store?.paymentFees || {};
+    const taxPercent = Number(store?.taxPercent ?? 19);
 
     useEffect(() => {
         if (!store) return;
@@ -31,8 +31,9 @@ const ConfiguracionPagos = () => {
             values[`${key}_type`] = fee?.type || 'none';
             values[`${key}_value`] = fee?.value ?? 0;
         });
+        values.taxPercent = taxPercent;
         form.setFieldsValue(values);
-    }, [store, paymentFees, form]);
+    }, [store, paymentFees, taxPercent, form]);
 
     const onFinish = async (values) => {
         setSaving(true);
@@ -43,8 +44,12 @@ const ConfiguracionPagos = () => {
                 const value = Number(values[`${key}_value`]) || 0;
                 paymentFeesPayload[key] = { type, value };
             });
+            const taxPercentPayload = Number(values.taxPercent);
 
-            const response = await Stores.updateInfo(user?.storeId, { paymentFees: paymentFeesPayload });
+            const response = await Stores.updateInfo(user?.storeId, {
+                paymentFees: paymentFeesPayload,
+                taxPercent: Number.isFinite(taxPercentPayload) ? taxPercentPayload : 0,
+            });
             if (response?.success) {
                 message.success(response.message || 'Configuración guardada');
                 refetch();
@@ -110,6 +115,24 @@ const ConfiguracionPagos = () => {
                                         </div>
                                     </div>
                                 ))}
+
+                                <div className="mt-6 pt-4 border-t border-gray-200">
+                                    <div className="text-base font-semibold text-gray-800 mb-2">IVA (%)</div>
+                                    <Form.Item
+                                        name="taxPercent"
+                                        initialValue={19}
+                                        rules={[{ required: true, message: 'Ingresa el porcentaje de IVA' }]}
+                                    >
+                                        <InputNumber
+                                            min={0}
+                                            max={100}
+                                            step={0.1}
+                                            precision={2}
+                                            placeholder="Ej: 19"
+                                            style={{ width: 180 }}
+                                        />
+                                    </Form.Item>
+                                </div>
 
                                 <Form.Item className="mt-6 mb-0">
                                     <Button type="primary" htmlType="submit" loading={saving} size="large">
