@@ -10,6 +10,7 @@ import {
     CarOutlined,
     EnvironmentOutlined,
     FileTextOutlined,
+    CreditCardOutlined,
     LogoutOutlined
 } from '@ant-design/icons';
 
@@ -58,6 +59,8 @@ const Sidebar = () => {
                 return ['11'];
             case '/codigosdescuento':
                 return ['12'];
+            case '/configuracionpagos':
+                return ['13'];
             default:
                 return ['1'];
         }
@@ -118,6 +121,9 @@ const Sidebar = () => {
             </Menu.Item>
             <Menu.Item key="12" icon={<FileTextOutlined />}>
                 <Link to="/codigosdescuento">Codigos de descuento</Link>
+            </Menu.Item>
+            <Menu.Item key="13" icon={<CreditCardOutlined />}>
+                <Link to="/configuracionpagos">Config. de pagos</Link>
             </Menu.Item>
             <Menu.Item
                 key="logout"
