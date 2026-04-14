@@ -25,7 +25,6 @@ const Sidebar = () => {
 
     const { data: storeResp } = useStoreInfo(); // { success, data: store }
     const store = storeResp?.data || null;
-    console.log(store)
     const toggleSidebar = () => setCollapsed(!collapsed);
 
     const handleLogout = () => {
@@ -166,22 +165,24 @@ const Sidebar = () => {
                 </div>
             </div>
 
-            {/* Sidebar de escritorio */}
-            <Sider
-                theme="light"
-                breakpoint="lg"
-                collapsedWidth="0"
-                width={250}
-                className="hidden lg:block h-screen border-r border-gray-200"
-            >
-                {renderBrand('p-6')}
-                <Menu mode="inline" selectedKeys={getSelectedKey()}>
-                    {renderMenuItems()}
-                </Menu>
-                <div className="text-center text-sm text-gray-500 p-2">
-                    © 2020 Fluvi
-                </div>
-            </Sider>
+            {/* Sidebar de escritorio: contenedor sticky para que no se mueva al hacer scroll */}
+            <div className="hidden lg:block sticky top-0 z-20 h-screen max-h-screen w-[250px] shrink-0 self-start overflow-y-auto border-r border-gray-200 bg-white">
+                <Sider
+                    theme="light"
+                    breakpoint="lg"
+                    collapsedWidth="0"
+                    width={250}
+                    className="min-h-full !bg-white border-0"
+                >
+                    {renderBrand('p-6')}
+                    <Menu mode="inline" selectedKeys={getSelectedKey()}>
+                        {renderMenuItems()}
+                    </Menu>
+                    <div className="text-center text-sm text-gray-500 p-2">
+                        © 2020 Fluvi
+                    </div>
+                </Sider>
+            </div>
         </>
     );
 };
