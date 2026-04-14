@@ -34,6 +34,34 @@ ChartJS.register(
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+/** Etiquetas según bucket del backend: YYYY-MM-DD, YYYY-MM o año-semana ISO (p. ej. 2026-W03). */
+function formatChartBucketLabel(raw) {
+    if (raw == null || raw === '') return 'Sin fecha';
+    const s = String(raw).trim();
+
+    if (/^\d{4}-W\d{1,2}$/i.test(s)) {
+        const [, y, w] = s.match(/^(\d{4})-W(\d{1,2})$/i);
+        return `Sem. ${Number(w)} · ${y}`;
+    }
+
+    const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (ymd) {
+        const date = new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
+        return date.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    const ym = /^(\d{4})-(\d{2})$/.exec(s);
+    if (ym) {
+        const y = Number(ym[1]);
+        const mo = Number(ym[2]);
+        if (mo >= 1 && mo <= 12) {
+            return new Date(y, mo - 1, 1).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+        }
+    }
+
+    return s;
+}
+
 const Metricas = () => {
     const { user } = useAuth();
 
@@ -59,18 +87,7 @@ const Metricas = () => {
     const salesTrendConfig = useMemo(() => {
         if (!trendData?.data) return null;
 
-        const labels = trendData.data.map(item => {
-            // Validar que item.period existe
-            if (!item.period) return 'Sin fecha';
-
-            // Crear fecha en zona horaria local para evitar problemas de UTC
-            const [year, month, day] = item.period.split('-');
-            const date = new Date(year, month - 1, day);
-            return date.toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit'
-            });
-        });
+        const labels = trendData.data.map(item => formatChartBucketLabel(item.period));
 
         const salesData = trendData.data.map(item => item.totalSales);
 
@@ -93,16 +110,7 @@ const Metricas = () => {
     const localSalesConfig = useMemo(() => {
         if (!localSalesData?.data) return null;
 
-        const labels = localSalesData.data.map(item => {
-            if (!item.period) return 'Sin fecha';
-
-            const [year, month, day] = item.period.split('-');
-            const date = new Date(year, month - 1, day);
-            return date.toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit'
-            });
-        });
+        const labels = localSalesData.data.map(item => formatChartBucketLabel(item.period));
 
         const salesData = localSalesData.data.map(item => item.totalSales);
 
@@ -157,18 +165,9 @@ const Metricas = () => {
     const ordersByDayConfig = useMemo(() => {
         if (!ordersByDayData?.data) return null;
 
-        const labels = ordersByDayData.data.map(item => {
-            // Validar que item.period existe
-            if (!item.period) return 'Sin fecha';
-
-            // Crear fecha en zona horaria local para evitar problemas de UTC
-            const [year, month, day] = item.period.split('-');
-            const date = new Date(year, month - 1, day);
-            return date.toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit'
-            });
-        });
+        const labels = ordersByDayData.data.map(item =>
+            formatChartBucketLabel(item.period ?? item.date)
+        );
 
         const ordersData = ordersByDayData.data.map(item => item.orderCount);
 
@@ -285,6 +284,13 @@ const Metricas = () => {
         },
     ];
 
+    const ordersChartTitle =
+        selectedPeriod === 'current_year' || selectedPeriod === '1y'
+            ? 'Pedidos por mes'
+            : selectedPeriod === '90d'
+              ? 'Pedidos por semana'
+              : 'Pedidos por día';
+
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
@@ -300,13 +306,17 @@ const Metricas = () => {
                         <Select
                             value={selectedPeriod}
                             onChange={setSelectedPeriod}
-                            style={{ width: 150 }}
+                            style={{ width: 260 }}
                             size="large"
                         >
-                            <Option value="today">Hoy</Option>
+                            <Option value="today">Día — Hoy</Option>
+                            <Option value="current_week">Semana actual</Option>
+                            <Option value="current_month">Mes actual</Option>
+                            <Option value="current_year">Año actual</Option>
                             <Option value="7d">Últimos 7 días</Option>
                             <Option value="30d">Últimos 30 días</Option>
-                            <Option value="current_month">Mes actual</Option>
+                            <Option value="90d">Últimos 90 días (por semana)</Option>
+                            <Option value="1y">Último año (por mes)</Option>
                         </Select>
                     </div>
                 </div>
@@ -375,6 +385,13 @@ const Metricas = () => {
                                             },
                                         },
                                         scales: {
+                                            x: {
+                                                ticks: {
+                                                    maxRotation: 45,
+                                                    minRotation: 0,
+                                                    autoSkip: true,
+                                                },
+                                            },
                                             y: {
                                                 beginAtZero: true,
                                                 ticks: {
@@ -434,6 +451,13 @@ const Metricas = () => {
                                             },
                                         },
                                         scales: {
+                                            x: {
+                                                ticks: {
+                                                    maxRotation: 45,
+                                                    minRotation: 0,
+                                                    autoSkip: true,
+                                                },
+                                            },
                                             y: {
                                                 beginAtZero: true,
                                                 ticks: {
@@ -457,7 +481,7 @@ const Metricas = () => {
                 {/* Gráfico de Pedidos por Día */}
                 <Row gutter={[16, 16]} className="mb-6">
                     <Col xs={24}>
-                        <Card title="Pedidos por Día" extra={<BarChartOutlined />}>
+                        <Card title={ordersChartTitle} extra={<BarChartOutlined />}>
                             {ordersByDayConfig ? (
                                 <Bar
                                     data={ordersByDayConfig}
@@ -469,6 +493,13 @@ const Metricas = () => {
                                             },
                                         },
                                         scales: {
+                                            x: {
+                                                ticks: {
+                                                    maxRotation: 45,
+                                                    minRotation: 0,
+                                                    autoSkip: true,
+                                                },
+                                            },
                                             y: {
                                                 beginAtZero: true,
                                                 ticks: {
