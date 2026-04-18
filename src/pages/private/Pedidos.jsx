@@ -481,6 +481,91 @@ const Pedidos = () => {
     const visibleCount = showAllCards ? productCards.length : Math.min(8, productCards.length);
     const showProductSummary = productCards.length > 0;
 
+    const unidadesPorProductoBlock = showProductSummary && (
+        <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-semibold">Unidades por producto</h2>
+                {productCards.length > 8 && (
+                    <Button size="small" onClick={() => setShowAllCards(s => !s)}>
+                        {showAllCards ? 'Ver menos' : 'Ver todos'}
+                    </Button>
+                )}
+            </div>
+
+            <Row gutter={[12, 12]}>
+                {productCards.slice(0, visibleCount).map((item) => (
+                    <Col key={item.productId} xs={12} sm={8} md={6} lg={6} xl={4}>
+                        <Card size="small" hoverable>
+                            <div className="text-sm text-gray-500 line-clamp-2">{item.name}</div>
+                            <div className="mt-1 flex items-baseline gap-2">
+                                <span className="text-2xl font-bold">{item.quantity}</span>
+                                <span className="text-xs text-gray-400">unid.</span>
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                                Venta: ${Math.round(item.revenue).toLocaleString('es-CL')}
+                            </div>
+                        </Card>
+                    </Col>
+                ))}
+            </Row>
+        </div>
+    );
+
+    const pedidosDesktopList = (
+        <>
+            {filteredPedidos.length > 0 ? (
+                pedidosPorDia.map(([dayKey, list]) => (
+                    <div key={dayKey} className="mb-2">
+                        <Divider orientation="left">
+                            {dayKey === 'sin-fecha' ? 'Sin fecha de entrega' : daySectionLabel(dayKey)}
+                        </Divider>
+                        {list.map(pedido => (
+                            <Card key={pedido._id} title={pedido.customer?.address || 'Sin nombre'} style={{ marginBottom: '16px' }}>
+                                <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
+                                <p>
+                                    <strong>Día y hora de entrega:</strong>{' '}
+                                    {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
+                                </p>
+                                <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
+                                <p>
+                                    <strong>Método de pago:</strong>{' '}
+                                    <span
+                                        style={{
+                                            backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
+                                            color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
+                                            padding: '2px 8px',
+                                            borderRadius: '8px'
+                                        }}
+                                    >
+                                        {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
+                                    </span>
+                                </p>
+
+                                <p>
+                                    <strong>Estado:</strong>{' '}
+                                    <Tag
+                                        color={statusColorMap[pedido.status]}
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => openStatusModal(pedido)}
+                                    >
+                                        {pedido.status.toUpperCase()}
+                                    </Tag>
+                                </p>
+
+                                <Space className="mt-2">
+                                    <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
+                                    <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
+                                </Space>
+                            </Card>
+                        ))}
+                    </div>
+                ))
+            ) : (
+                !isLoading && <Empty description="No se encontraron pedidos" />
+            )}
+        </>
+    );
+
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
@@ -504,40 +589,10 @@ const Pedidos = () => {
                     </div>
                 </div>
 
-                {showProductSummary && (
-                    <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-xl font-semibold">Unidades por producto</h2>
-                            {productCards.length > 8 && (
-                                <Button size="small" onClick={() => setShowAllCards(s => !s)}>
-                                    {showAllCards ? 'Ver menos' : 'Ver todos'}
-                                </Button>
-                            )}
-                        </div>
-
-                        <Row gutter={[12, 12]}>
-                            {productCards.slice(0, visibleCount).map((item) => (
-                                <Col key={item.productId} xs={12} sm={8} md={6} lg={6} xl={4}>
-                                    <Card size="small" hoverable>
-                                        <div className="text-sm text-gray-500 line-clamp-2">{item.name}</div>
-                                        <div className="mt-1 flex items-baseline gap-2">
-                                            <span className="text-2xl font-bold">{item.quantity}</span>
-                                            <span className="text-xs text-gray-400">unid.</span>
-                                        </div>
-                                        <div className="text-xs text-gray-400 mt-1">
-                                            Venta: ${Math.round(item.revenue).toLocaleString('es-CL')}
-                                        </div>
-                                    </Card>
-                                </Col>
-                            ))}
-                        </Row>
-                    </div>
-                )}
-
-
-
                 <Spin spinning={isLoading}>
                 {isMobile ? (
+                    <>
+                        {unidadesPorProductoBlock}
                     <div className="grid gap-4">
                         {filteredPedidos.length === 0 && !isLoading ? (
                             <Empty description="No se encontraron pedidos" />
@@ -597,68 +652,24 @@ const Pedidos = () => {
                             ))
                         )}
                     </div>
+                    </>
                 ) : (
-                    <div className="grid grid-cols-2 gap-4 h-full">
-                        <div className="col-span-1 overflow-y-auto max-h-[calc(100vh-64px)]">
-                            {filteredPedidos.length > 0 ? (
-                                pedidosPorDia.map(([dayKey, list]) => (
-                                    <div key={dayKey} className="mb-2">
-                                        <Divider orientation="left">
-                                            {dayKey === 'sin-fecha' ? 'Sin fecha de entrega' : daySectionLabel(dayKey)}
-                                        </Divider>
-                                        {list.map(pedido => (
-                                            <Card key={pedido._id} title={pedido.customer?.address || 'Sin nombre'} style={{ marginBottom: '16px' }}>
-                                                <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
-                                                <p>
-                                                    <strong>Día y hora de entrega:</strong>{' '}
-                                                    {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
-                                                </p>
-                                                <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
-                                                <p>
-                                                    <strong>Método de pago:</strong>{' '}
-                                                    <span
-                                                        style={{
-                                                            backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
-                                                            color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
-                                                            padding: '2px 8px',
-                                                            borderRadius: '8px'
-                                                        }}
-                                                    >
-                                                        {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
-                                                    </span>
-                                                </p>
-
-                                                <p>
-                                                    <strong>Estado:</strong>{' '}
-                                                    <Tag
-                                                        color={statusColorMap[pedido.status]}
-                                                        style={{ cursor: 'pointer' }}
-                                                        onClick={() => openStatusModal(pedido)}
-                                                    >
-                                                        {pedido.status.toUpperCase()}
-                                                    </Tag>
-                                                </p>
-
-                                                <Space className="mt-2">
-                                                    <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
-                                                    <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
-                                                </Space>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                ))
-                            ) : (
-                                !isLoading && <Empty description="No se encontraron pedidos" />
-                            )}
+                    <div className="flex flex-col lg:flex-row gap-4 items-start">
+                        <div className="flex-1 min-w-0 flex flex-col gap-4 w-full">
+                            {unidadesPorProductoBlock}
+                            <div className="overflow-y-auto max-h-[calc(100vh-11rem)] lg:max-h-[calc(100vh-13rem)] pr-1">
+                                {pedidosDesktopList}
+                            </div>
                         </div>
-
-                        <div className="col-span-1 h-full">
-                            <OrdersMap
-                                locations={filteredPedidos.map(pedido => ({
-                                    lat: pedido.customer.lat,
-                                    lng: pedido.customer.lon,
-                                }))}
-                            />
+                        <div className="w-full lg:w-[min(42%,520px)] lg:shrink-0 lg:sticky lg:top-4 lg:self-start">
+                            <div className="h-[min(72vh,620px)] min-h-[280px] w-full rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
+                                <OrdersMap
+                                    locations={filteredPedidos.map(pedido => ({
+                                        lat: pedido.customer.lat,
+                                        lng: pedido.customer.lon,
+                                    }))}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
