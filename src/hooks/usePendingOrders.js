@@ -1,18 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import Orders from '../services/Orders';
 import { useAuth } from '../context/AuthContext';
 
-const usePendingOrders = (params) => {
-    const { user } = useAuth(); // Obtenemos el storeId del usuario
+const usePendingOrders = ({ datePreset = 'today' } = {}) => {
+    const { user } = useAuth();
 
     return useQuery({
-        queryKey: ['pendingOrders', user?.storeId], // Clave para la caché de React Query
+        queryKey: ['pendingOrders', user?.storeId, datePreset],
         queryFn: () =>
             Orders.getPending({
-                storeId: user?.storeId, // Pasamos el storeId como parámetro
+                storeId: user?.storeId,
+                datePreset,
             }),
-        keepPreviousData: true,
-        enabled: !!user?.storeId, // Solo ejecutamos la query si tenemos el storeId
+        placeholderData: keepPreviousData,
+        enabled: !!user?.storeId,
     });
 };
 

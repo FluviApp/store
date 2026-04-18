@@ -1,8 +1,8 @@
 // Vista de administración de pedidos
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import {
-    Table, Button, Space, Input, Modal, Form, Card, message, Empty, Select, Radio, DatePicker, Row, Col, Tag
+    Table, Button, Space, Input, Modal, Form, Card, message, Empty, Select, Radio, DatePicker, Row, Col, Tag, Segmented, Divider, Spin, Typography
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
@@ -18,6 +18,7 @@ import useAllDealers from '../../hooks/useAllDealers';
 import OrdersMap from '../../components/OrdersMap.jsx'
 const { Search } = Input;
 const { Option } = Select;
+const { Text } = Typography;
 
 const orderOrigins = ['web', 'app', 'admin', 'pos'];
 const orderStatuses = ['pending', 'confirmed', 'dispatched', 'delivered', 'cancelled', 'returned', 'delayed'];
@@ -40,7 +41,15 @@ const statusColorMap = {
 // 🆕 Para el autocomplete de dirección
 import { Autocomplete } from '@react-google-maps/api';
 
-
+function daySectionLabel(dayKey) {
+    const d = dayjs(dayKey, 'YYYY-MM-DD');
+    const today = dayjs().startOf('day');
+    const tomorrow = today.add(1, 'day');
+    if (d.isSame(today, 'day')) return 'Hoy';
+    if (d.isSame(tomorrow, 'day')) return 'Mañana';
+    const formatted = d.toDate().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
 
 const Pedidos = () => {
     const { user } = useAuth();
@@ -50,34 +59,12 @@ const Pedidos = () => {
     const [editingOrder, setEditingOrder] = useState(null);
     const [searchText, setSearchText] = useState('');
     const [customProducts, setCustomProducts] = useState([]);
-    const [dateSearchTriggered, setDateSearchTriggered] = useState(false);
     const [productSearchTerm, setProductSearchTerm] = useState('');
+    const [datePreset, setDatePreset] = useState('today');
 
-    const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
-    const { startDate, endDate } = dateRange; // si lo necesitas
+    const { data, isLoading, refetch } = usePendingOrders({ datePreset });
 
-    const queryParams = {
-        storeId: user?.storeId,
-    };
-
-    useEffect(() => {
-        if (dateSearchTriggered && dateRange.length === 2) {
-            setQueryParams({
-                storeId: user.storeId,
-                startDate: dayjs(dateRange[0]).startOf('day').toISOString(),
-                endDate: dayjs(dateRange[1]).endOf('day').toISOString()
-            });
-        }
-    }, [dateSearchTriggered, dateRange, user.storeId]);
-    const { data, isLoading, refetch } = usePendingOrders(queryParams);
-
-    console.log(data)
-
-    console.log("Datos recibidos del backend:", data);
-
-    // Asegúrate de que estamos accediendo correctamente a los pedidos
     const pedidos = data?.data || [];
-    console.log('Pedidos:', pedidos); // Este debería ser el array de pedidos
 
 
     const pageSize = 5;
@@ -85,6 +72,16 @@ const Pedidos = () => {
     const filteredPedidos = searchText
         ? pedidos.filter(p => p.client?.name?.toLowerCase().includes(searchText.toLowerCase()))
         : pedidos;
+
+    const pedidosPorDia = useMemo(() => {
+        const map = new Map();
+        for (const p of filteredPedidos) {
+            const key = p.deliveryDate ? dayjs(p.deliveryDate).format('YYYY-MM-DD') : 'sin-fecha';
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(p);
+        }
+        return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    }, [filteredPedidos]);
 
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const { data: clientsData, isLoading: isClientsLoading } = useClients({ page: 1, limit: 900 });
@@ -103,9 +100,6 @@ const Pedidos = () => {
 
     const products = productDataForSelect?.data || [];
     const [selectedProducts, setSelectedProducts] = useState([]);
-    console.log(productDataForSelect)
-
-
 
     const { data: dealersData, isLoading: isLoadingDealers } = useAllDealers();
     const dealers = dealersData?.data || [];
@@ -491,11 +485,24 @@ const Pedidos = () => {
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto flex flex-col">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold">Pedidos</h1>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAgregar}>Agregar Pedido</Button>
+                <div className="flex flex-col gap-4 mb-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h1 className="text-3xl font-bold m-0">Pedidos</h1>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={handleAgregar}>Agregar Pedido</Button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Text type="secondary" className="whitespace-nowrap">Entregas:</Text>
+                        <Segmented
+                            options={[
+                                { label: 'Hoy', value: 'today' },
+                                { label: 'Mañana', value: 'tomorrow' },
+                                { label: 'Hoy y mañana', value: 'today_and_tomorrow' },
+                            ]}
+                            value={datePreset}
+                            onChange={setDatePreset}
+                        />
+                    </div>
                 </div>
-
 
                 {showProductSummary && (
                     <div className="mb-4">
@@ -529,108 +536,123 @@ const Pedidos = () => {
 
 
 
+                <Spin spinning={isLoading}>
                 {isMobile ? (
                     <div className="grid gap-4">
-                        {filteredPedidos.map(pedido => (
-                            <Card key={pedido._id} title={
-                                (() => {
-                                    const addr = pedido.customer?.address || 'Sin nombre';
-                                    const block = pedido.customer?.block ?? pedido.customer?.deptoblock;
-                                    return block ? `${addr} · ${block}` : addr;
-                                })()
-                            }
-                                style={{ marginBottom: '16px' }}>
-                                <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
-                                {/* <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p> */}
-                                <p>
-                                    <strong>Día y hora de entrega:</strong>{' '}
-                                    {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
-                                </p>
-                                <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
-                                <p>
-                                    <strong>Método de pago:</strong>{' '}
-                                    <span
-                                        style={{
-                                            backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
-                                            color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
-                                            padding: '2px 8px',
-                                            borderRadius: '8px'
-                                        }}
-                                    >
-                                        {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
-                                    </span>
-                                </p>
+                        {filteredPedidos.length === 0 && !isLoading ? (
+                            <Empty description="No se encontraron pedidos" />
+                        ) : (
+                            pedidosPorDia.map(([dayKey, list]) => (
+                                <div key={dayKey}>
+                                    <Divider orientation="left" plain>
+                                        {dayKey === 'sin-fecha' ? 'Sin fecha de entrega' : daySectionLabel(dayKey)}
+                                    </Divider>
+                                    {list.map(pedido => (
+                                        <Card key={pedido._id} title={
+                                            (() => {
+                                                const addr = pedido.customer?.address || 'Sin nombre';
+                                                const block = pedido.customer?.block ?? pedido.customer?.deptoblock;
+                                                return block ? `${addr} · ${block}` : addr;
+                                            })()
+                                        }
+                                            style={{ marginBottom: '16px' }}>
+                                            <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
+                                            <p>
+                                                <strong>Día y hora de entrega:</strong>{' '}
+                                                {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
+                                            </p>
+                                            <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
+                                            <p>
+                                                <strong>Método de pago:</strong>{' '}
+                                                <span
+                                                    style={{
+                                                        backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
+                                                        color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '8px'
+                                                    }}
+                                                >
+                                                    {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
+                                                </span>
+                                            </p>
 
-                                <p>
-                                    <strong>Estado:</strong>{' '}
-                                    <Tag
-                                        color={statusColorMap[pedido.status]}
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => openStatusModal(pedido)}
-                                    >
-                                        {pedido.status.toUpperCase()}
-                                    </Tag>
-                                </p>
+                                            <p>
+                                                <strong>Estado:</strong>{' '}
+                                                <Tag
+                                                    color={statusColorMap[pedido.status]}
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => openStatusModal(pedido)}
+                                                >
+                                                    {pedido.status.toUpperCase()}
+                                                </Tag>
+                                            </p>
 
-                                <Space className="mt-2">
-                                    <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
-                                    <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
-                                </Space>
-                            </Card>
-                        ))}
+                                            <Space className="mt-2">
+                                                <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
+                                                <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
+                                            </Space>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ))
+                        )}
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 gap-4 h-full">
-                        {/* Mitad izquierda con los pedidos en formato de tarjetas */}
-                        <div className="col-span-1 overflow-y-auto max-h-[calc(100vh-64px)]">  {/* Aquí se define el scroll */}
+                        <div className="col-span-1 overflow-y-auto max-h-[calc(100vh-64px)]">
                             {filteredPedidos.length > 0 ? (
-                                filteredPedidos.map(pedido => (
-                                    <Card key={pedido._id} title={pedido.customer?.address || 'Sin nombre'} style={{ marginBottom: '16px' }}>
-                                        <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
-                                        {/* <p><strong>Dirección:</strong> {pedido.customer?.address || '—'}</p> */}
-                                        <p>
-                                            <strong>Día y hora de entrega:</strong>{' '}
-                                            {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
-                                        </p>
-                                        <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
-                                        <p>
-                                            <strong>Método de pago:</strong>{' '}
-                                            <span
-                                                style={{
-                                                    backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
-                                                    color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
-                                                    padding: '2px 8px',
-                                                    borderRadius: '8px'
-                                                }}
-                                            >
-                                                {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
-                                            </span>
-                                        </p>
+                                pedidosPorDia.map(([dayKey, list]) => (
+                                    <div key={dayKey} className="mb-2">
+                                        <Divider orientation="left">
+                                            {dayKey === 'sin-fecha' ? 'Sin fecha de entrega' : daySectionLabel(dayKey)}
+                                        </Divider>
+                                        {list.map(pedido => (
+                                            <Card key={pedido._id} title={pedido.customer?.address || 'Sin nombre'} style={{ marginBottom: '16px' }}>
+                                                <p><strong>Teléfono:</strong> +56 {pedido.customer?.phone || '—'}</p>
+                                                <p>
+                                                    <strong>Día y hora de entrega:</strong>{' '}
+                                                    {dayTranslations[pedido.deliverySchedule?.day] || pedido.deliverySchedule?.day || '—'} a las {pedido.deliverySchedule?.hour || '—'}
+                                                </p>
+                                                <p><strong>Precio Total:</strong> ${pedido.finalPrice?.toLocaleString('es-CL') ?? 0}</p>
+                                                <p>
+                                                    <strong>Método de pago:</strong>{' '}
+                                                    <span
+                                                        style={{
+                                                            backgroundColor: `${paymentMethodStyles[pedido.paymentMethod]?.color || 'gray'}20`,
+                                                            color: paymentMethodStyles[pedido.paymentMethod]?.color || 'gray',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '8px'
+                                                        }}
+                                                    >
+                                                        {paymentMethodStyles[pedido.paymentMethod]?.label || pedido.paymentMethod}
+                                                    </span>
+                                                </p>
 
-                                        <p>
-                                            <strong>Estado:</strong>{' '}
-                                            <Tag
-                                                color={statusColorMap[pedido.status]}
-                                                style={{ cursor: 'pointer' }}
-                                                onClick={() => openStatusModal(pedido)}
-                                            >
-                                                {pedido.status.toUpperCase()}
-                                            </Tag>
-                                        </p>
+                                                <p>
+                                                    <strong>Estado:</strong>{' '}
+                                                    <Tag
+                                                        color={statusColorMap[pedido.status]}
+                                                        style={{ cursor: 'pointer' }}
+                                                        onClick={() => openStatusModal(pedido)}
+                                                    >
+                                                        {pedido.status.toUpperCase()}
+                                                    </Tag>
+                                                </p>
 
-                                        <Space className="mt-2">
-                                            <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
-                                            <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
-                                        </Space>
-                                    </Card>
+                                                <Space className="mt-2">
+                                                    <Button type="primary" onClick={() => handleEditarPedido(pedido)}>Editar</Button>
+                                                    <Button danger onClick={() => handleEliminar(pedido._id)}>Eliminar</Button>
+                                                </Space>
+                                            </Card>
+                                        ))}
+                                    </div>
                                 ))
                             ) : (
-                                <Empty description="No se encontraron pedidos" />
+                                !isLoading && <Empty description="No se encontraron pedidos" />
                             )}
                         </div>
 
-                        {/* Mitad derecha con el mapa */}
-                        <div className="col-span-1 h-full">  {/* Aquí se asegura de que ocupe el alto completo */}
+                        <div className="col-span-1 h-full">
                             <OrdersMap
                                 locations={filteredPedidos.map(pedido => ({
                                     lat: pedido.customer.lat,
@@ -640,6 +662,7 @@ const Pedidos = () => {
                         </div>
                     </div>
                 )}
+                </Spin>
 
                 <Modal
                     title={editingOrder ? 'Editar Pedido' : 'Nuevo Pedido'}
