@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Form, Input, Upload, Button, Select, Card } from 'antd';
+import { Modal, Form, Input, Upload, Button, Select, Card, Switch } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
@@ -44,6 +44,15 @@ const ModalCreatePack = ({
                     rules={[{ required: true, message: 'El precio es obligatorio' }]}
                 >
                     <Input type="number" placeholder="Precio del paquete" />
+                </Form.Item>
+
+                <Form.Item
+                    name="available"
+                    label="Visible para cliente"
+                    valuePropName="checked"
+                    initialValue={true}
+                >
+                    <Switch checkedChildren="Visible" unCheckedChildren="Oculto" />
                 </Form.Item>
 
                 <Form.Item label="Imagen del paquete (1200x500)">

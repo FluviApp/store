@@ -82,7 +82,11 @@ const Paquetes = () => {
     const handleOpenModal = (item = null) => {
         setEditingItem(item);
         if (item) {
-            form.setFieldsValue({ name: item.name, price: item.price });
+            form.setFieldsValue({
+                name: item.name,
+                price: item.price,
+                available: item.available !== false,
+            });
             setSelectedProducts(item.products || []);
             if (item.image) {
                 setImageFile({
@@ -94,6 +98,7 @@ const Paquetes = () => {
             }
         } else {
             form.resetFields();
+            form.setFieldsValue({ available: true });
             setImageFile(null);
             setSelectedProducts([]);
         }
@@ -164,6 +169,7 @@ const Paquetes = () => {
             data.append('storeId', user.storeId);
             data.append('name', values.name.trim());
             data.append('price', parseFloat(values.price));
+            data.append('available', values.available !== false);
             data.append('products', JSON.stringify(selectedProducts));
             if (imageFile?.originFileObj) {
                 data.append('image', imageFile.originFileObj);
@@ -188,6 +194,12 @@ const Paquetes = () => {
     const columns = [
         { title: 'Nombre', dataIndex: 'name', key: 'name' },
         { title: 'Precio', dataIndex: 'price', key: 'price' },
+        {
+            title: 'Estado',
+            dataIndex: 'available',
+            key: 'available',
+            render: (available) => (available === false ? 'Oculto' : 'Visible'),
+        },
         { title: 'Productos', dataIndex: 'products', key: 'products', render: (products) => products?.length || 0 },
         {
             title: 'Acciones',
@@ -233,6 +245,7 @@ const Paquetes = () => {
                             {filteredPacks.map(pack => (
                                 <Card key={pack._id} title={pack.name} bordered>
                                     <p>Precio: ${pack.price}</p>
+                                    <p>Estado: {pack.available === false ? 'Oculto' : 'Visible'}</p>
                                     <p>Productos: {pack.products?.length || 0}</p>
                                     <Space wrap>
                                         <Button icon={<EditOutlined />} onClick={() => handleOpenModal(pack)}>Editar</Button>
