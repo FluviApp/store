@@ -1,7 +1,8 @@
 // CodigosDescuento.jsx
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
-import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Switch } from 'antd';
+import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Switch, Select, InputNumber, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import useDiscountCodes from '../../hooks/useDiscountCodes.js';
@@ -35,9 +36,50 @@ const CodigosDescuento = () => {
         currentPage * pageSize
     );
 
+    const formatValue = (record) => {
+        const value = Number(record?.value) || 0;
+        if (record?.type === 'fixed') return `$${value}`;
+        return `${value}%`;
+    };
+
     const columns = [
         { title: 'Nombre', dataIndex: 'name', key: 'name' },
         { title: 'Código', dataIndex: 'code', key: 'code' },
+        {
+            title: 'Tipo',
+            dataIndex: 'type',
+            key: 'type',
+            render: (type) => type === 'fixed' ? 'Fijo' : 'Porcentaje'
+        },
+        {
+            title: 'Valor',
+            key: 'value',
+            render: (_, record) => formatValue(record)
+        },
+        {
+            title: 'Usos',
+            key: 'uses',
+            render: (_, record) => {
+                const used = Number(record?.usedCount) || 0;
+                const max = Number(record?.maxUses) || 0;
+                return max > 0 ? `${used} / ${max}` : `${used} / ∞`;
+            }
+        },
+        {
+            title: 'Por usuario',
+            dataIndex: 'perUserLimit',
+            key: 'perUserLimit',
+            render: (perUserLimit) => {
+                const limit = Number(perUserLimit) || 0;
+                return limit > 0 ? `${limit}x` : 'Sin límite';
+            }
+        },
+        {
+            title: 'Expira',
+            dataIndex: 'expiresAt',
+            key: 'expiresAt',
+            render: (expiresAt) => expiresAt ? dayjs(expiresAt).format('DD/MM/YYYY') : 'Sin expiración'
+        },
         {
             title: 'Estado',
             dataIndex: 'status',
@@ -59,6 +101,14 @@ const CodigosDescuento = () => {
     const handleAgregar = () => {
         setEditingCode(null);
         form.resetFields();
+        form.setFieldsValue({
+            tipo: 'percent',
+            valor: 0,
+            minAmount: 0,
+            maxUses: 0,
+            perUserLimit: 0,
+            estado: true,
+        });
         setIsModalVisible(true);
     };
 
@@ -67,6 +117,12 @@ const CodigosDescuento = () => {
         form.setFieldsValue({
             nombre: code.name,
             codigo: code.code,
+            tipo: code.type || 'percent',
+            valor: Number(code.value) || 0,
+            minAmount: Number(code.minAmount) || 0,
+            maxUses: Number(code.maxUses) || 0,
+            perUserLimit: Number(code.perUserLimit) || 0,
+            expiresAt: code.expiresAt ? dayjs(code.expiresAt) : null,
             estado: code.status,
         });
         setIsModalVisible(true);
@@ -78,6 +134,12 @@ const CodigosDescuento = () => {
                 const payload = {
                     name: values.nombre.trim(),
                     code: values.codigo.trim(),
+                    type: values.tipo || 'percent',
+                    value: Number(values.valor) || 0,
+                    minAmount: Number(values.minAmount) || 0,
+                    maxUses: Number(values.maxUses) || 0,
+                    perUserLimit: Number(values.perUserLimit) || 0,
+                    expiresAt: values.expiresAt ? values.expiresAt.toISOString() : null,
                     status: values.estado,
                     storeId: user.storeId,
                 };
@@ -172,6 +234,11 @@ const CodigosDescuento = () => {
                                     <Card key={code._id} bordered>
                                         <p><strong>Nombre:</strong> {code.name}</p>
                                         <p><strong>Código:</strong> {code.code}</p>
+                                        <p><strong>Tipo:</strong> {code.type === 'fixed' ? 'Fijo' : 'Porcentaje'}</p>
+                                        <p><strong>Valor:</strong> {formatValue(code)}</p>
+                                        <p><strong>Usos:</strong> {(Number(code.maxUses) || 0) > 0 ? `${Number(code.usedCount) || 0} / ${code.maxUses}` : `${Number(code.usedCount) || 0} / ∞`}</p>
+                                        <p><strong>Por usuario:</strong> {(Number(code.perUserLimit) || 0) > 0 ? `${code.perUserLimit}x` : 'Sin límite'}</p>
+                                        <p><strong>Expira:</strong> {code.expiresAt ? dayjs(code.expiresAt).format('DD/MM/YYYY') : 'Sin expiración'}</p>
                                         <p><strong>Estado:</strong> {code.status ? 'Activo' : 'Inactivo'}</p>
                                         <div className="flex gap-2 mt-2">
                                             <Button size="small" type="primary" icon={<EditOutlined />} onClick={() => handleEditar(code)}>Editar</Button>
@@ -213,6 +280,39 @@ const CodigosDescuento = () => {
 
                         <Form.Item name="codigo" label="Código" rules={[{ required: true, message: 'Por favor ingresa el código' }]}>
                             <Input placeholder="Ej: VERANO2024" />
+                        </Form.Item>
+
+                        <Form.Item name="tipo" label="Tipo de descuento" initialValue="percent" rules={[{ required: true, message: 'Selecciona un tipo' }]}>
+                            <Select
+                                options={[
+                                    { value: 'percent', label: 'Porcentaje (%)' },
+                                    { value: 'fixed', label: 'Monto fijo ($)' },
+                                ]}
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="valor"
+                            label="Valor del descuento"
+                            rules={[{ required: true, message: 'Ingresa el valor del descuento' }]}
+                        >
+                            <InputNumber min={0} style={{ width: '100%' }} placeholder="Ej: 10" />
+                        </Form.Item>
+
+                        <Form.Item name="minAmount" label="Subtotal mínimo (opcional)">
+                            <InputNumber min={0} style={{ width: '100%' }} placeholder="0 = sin mínimo" />
+                        </Form.Item>
+
+                        <Form.Item name="maxUses" label="Usos máximos totales (opcional)">
+                            <InputNumber min={0} style={{ width: '100%' }} placeholder="0 = ilimitado" />
+                        </Form.Item>
+
+                        <Form.Item name="perUserLimit" label="Usos por usuario (opcional)">
+                            <InputNumber min={0} style={{ width: '100%' }} placeholder="0 = sin límite, 1 = una vez por usuario" />
+                        </Form.Item>
+
+                        <Form.Item name="expiresAt" label="Fecha de expiración (opcional)">
+                            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Sin expiración" />
                         </Form.Item>
 
                         <Form.Item name="estado" label="Estado" valuePropName="checked">
