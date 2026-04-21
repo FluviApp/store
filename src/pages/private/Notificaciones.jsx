@@ -51,7 +51,7 @@ const Notificaciones = () => {
 
     // ===== AVISOS STATE =====
     const { data: announcementsData, refetch: refetchAnnouncements, isLoading: isLoadingAnnouncements } = useAnnouncements();
-    const announcements = announcementsData?.data?.data || [];
+    const announcements = announcementsData?.data || [];
     const [avisoSearch, setAvisoSearch] = useState('');
     const [avisoModalVisible, setAvisoModalVisible] = useState(false);
     const [editingAviso, setEditingAviso] = useState(null);
@@ -206,12 +206,12 @@ const Notificaciones = () => {
                 ? await Announcements.edit(editingAviso._id, fd)
                 : await Announcements.create(fd);
 
-            if (response?.data?.success) {
+            if (response?.success) {
                 message.success(editingAviso ? 'Aviso actualizado' : 'Aviso creado');
                 refetchAnnouncements();
                 handleCloseAvisoModal();
             } else {
-                message.warning(response?.data?.message || 'No se pudo guardar el aviso');
+                message.warning(response?.message || 'No se pudo guardar el aviso');
             }
         } catch (err) {
             message.error(err?.response?.data?.message || err.message || 'Error al guardar el aviso');
@@ -230,11 +230,11 @@ const Notificaciones = () => {
             onOk: async () => {
                 try {
                     const response = await Announcements.delete(item._id);
-                    if (response?.data?.success) {
+                    if (response?.success) {
                         message.success('Aviso eliminado');
                         refetchAnnouncements();
                     } else {
-                        message.warning(response?.data?.message || 'No se pudo eliminar');
+                        message.warning(response?.message || 'No se pudo eliminar');
                     }
                 } catch (err) {
                     message.error(err.message || 'Error al eliminar');
@@ -248,7 +248,7 @@ const Notificaciones = () => {
         fd.append('active', active ? 'true' : 'false');
         try {
             const response = await Announcements.edit(item._id, fd);
-            if (response?.data?.success) {
+            if (response?.success) {
                 message.success(active ? 'Aviso activado' : 'Aviso desactivado');
                 refetchAnnouncements();
             }
