@@ -88,8 +88,8 @@ const ConfiguracionReparto = () => {
                             <Spin size="large" />
                         </div>
                     ) : (
-                        <>
-                            <Card bordered className="shadow-sm mb-6" bodyStyle={{ padding: 24 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                            <Card bordered className="shadow-sm" bodyStyle={{ padding: 24 }}>
                                 <div className="flex items-start justify-between gap-6">
                                     <div>
                                         <div className="text-base font-semibold text-gray-800 mb-2">
@@ -108,7 +108,7 @@ const ConfiguracionReparto = () => {
                                 </div>
                             </Card>
 
-                            <Card bordered className="shadow-sm mb-6" bodyStyle={{ padding: 24 }}>
+                            <Card bordered className="shadow-sm" bodyStyle={{ padding: 24 }}>
                                 <div className="text-base font-semibold text-gray-800 mb-2">
                                     Fechas puntuales sin reparto
                                 </div>
@@ -162,13 +162,14 @@ const ConfiguracionReparto = () => {
                                 showIcon
                                 message="Cómo se combinan las reglas"
                                 description="Un día se considera abierto solo si el schedule semanal de la zona lo permite y la fecha NO está en las reglas de arriba. Es decir, estas reglas solo restan disponibilidad."
-                                className="mb-8"
                             />
 
-                            <Button type="primary" size="large" loading={saving} onClick={handleSave}>
-                                Guardar configuración
-                            </Button>
-                        </>
+                            <div>
+                                <Button type="primary" size="large" loading={saving} onClick={handleSave}>
+                                    Guardar configuración
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
