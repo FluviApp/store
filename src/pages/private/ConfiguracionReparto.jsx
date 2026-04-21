@@ -73,13 +73,13 @@ const ConfiguracionReparto = () => {
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
-            <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
+            <div className="flex-1 pt-16 px-4 lg:pt-10 lg:px-10 pb-10 overflow-x-auto">
                 <div className="max-w-2xl">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-3 flex items-center gap-3">
                         <CalendarOutlined />
                         Configuración de reparto
                     </h1>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-8">
                         Controla excepciones en el calendario de reparto sin tocar los horarios semanales de cada zona.
                     </p>
 
@@ -89,13 +89,13 @@ const ConfiguracionReparto = () => {
                         </div>
                     ) : (
                         <>
-                            <Card bordered className="shadow-sm mb-4">
-                                <div className="flex items-start justify-between gap-4">
+                            <Card bordered className="shadow-sm mb-6" bodyStyle={{ padding: 24 }}>
+                                <div className="flex items-start justify-between gap-6">
                                     <div>
-                                        <div className="text-base font-semibold text-gray-800 mb-1">
+                                        <div className="text-base font-semibold text-gray-800 mb-2">
                                             Atender en días feriados
                                         </div>
-                                        <p className="text-sm text-gray-600 max-w-md">
+                                        <p className="text-sm text-gray-600 max-w-md leading-relaxed">
                                             Si está desactivado, los feriados chilenos se bloquean automáticamente para toda la tienda. Al pasar el feriado, no hace falta reactivar nada.
                                         </p>
                                     </div>
@@ -108,15 +108,15 @@ const ConfiguracionReparto = () => {
                                 </div>
                             </Card>
 
-                            <Card bordered className="shadow-sm mb-4">
-                                <div className="text-base font-semibold text-gray-800 mb-1">
+                            <Card bordered className="shadow-sm mb-6" bodyStyle={{ padding: 24 }}>
+                                <div className="text-base font-semibold text-gray-800 mb-2">
                                     Fechas puntuales sin reparto
                                 </div>
-                                <p className="text-sm text-gray-600 mb-4">
+                                <p className="text-sm text-gray-600 mb-5 leading-relaxed">
                                     Selecciona fechas específicas donde no se realizará reparto, independiente del horario semanal de la zona.
                                 </p>
 
-                                <div className="flex gap-2 mb-4">
+                                <div className="flex gap-3 mb-6">
                                     <DatePicker
                                         value={datePickerValue}
                                         onChange={setDatePickerValue}
@@ -130,7 +130,9 @@ const ConfiguracionReparto = () => {
                                 </div>
 
                                 {blockedDates.length === 0 ? (
-                                    <Empty description="Sin fechas bloqueadas" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                    <div className="py-4">
+                                        <Empty description="Sin fechas bloqueadas" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                    </div>
                                 ) : (
                                     <div className="flex flex-wrap gap-2">
                                         {blockedDates.map((d) => {
@@ -160,7 +162,7 @@ const ConfiguracionReparto = () => {
                                 showIcon
                                 message="Cómo se combinan las reglas"
                                 description="Un día se considera abierto solo si el schedule semanal de la zona lo permite y la fecha NO está en las reglas de arriba. Es decir, estas reglas solo restan disponibilidad."
-                                className="mb-4"
+                                className="mb-8"
                             />
 
                             <Button type="primary" size="large" loading={saving} onClick={handleSave}>
