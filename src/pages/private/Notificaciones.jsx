@@ -542,9 +542,27 @@ const Notificaciones = () => {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium mb-2">Imagen {editingAviso ? '(opcional para reemplazar)' : '*'}</label>
+                            <p className="text-xs text-gray-500 mb-2">La imagen debe ser cuadrada de exactamente 300×300 px.</p>
                             <Upload
                                 beforeUpload={(file) => {
-                                    setAvisoFile(file);
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                        const img = new window.Image();
+                                        img.onload = () => {
+                                            if (img.width !== 300 || img.height !== 300) {
+                                                message.error(`La imagen debe ser 300×300 px. Recibida: ${img.width}×${img.height} px.`);
+                                                setAvisoFile(null);
+                                            } else {
+                                                setAvisoFile(file);
+                                            }
+                                        };
+                                        img.onerror = () => {
+                                            message.error('No se pudo leer la imagen.');
+                                            setAvisoFile(null);
+                                        };
+                                        img.src = ev.target.result;
+                                    };
+                                    reader.readAsDataURL(file);
                                     return false;
                                 }}
                                 onRemove={() => setAvisoFile(null)}
