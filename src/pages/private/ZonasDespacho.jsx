@@ -51,6 +51,7 @@ const ZonasDespacho = () => {
 
     const filteredZonas = searchText
         ? zonas.filter((item) =>
+            item.name?.toLowerCase().includes(searchText.toLowerCase()) ||
             item.comuna?.toLowerCase().includes(searchText.toLowerCase()) ||
             item.type?.toLowerCase().includes(searchText.toLowerCase())
         )
@@ -103,6 +104,12 @@ const ZonasDespacho = () => {
 
     const columns = [
         {
+            title: 'Nombre',
+            dataIndex: 'name',
+            key: 'name',
+            render: (value, record) => value || (record.type === 'comuna' ? record.comuna : '—'),
+        },
+        {
             title: 'Tipo',
             dataIndex: 'type',
             key: 'type',
@@ -151,11 +158,13 @@ const ZonasDespacho = () => {
             console.log('Seteando coords para edición:', zona.polygon);
             setEditPolygonCoords([...(zona.polygon || [])]);
             form.setFieldsValue({
+                name: zona.name || '',
                 costoDespacho: zona.deliveryCost,
                 dealerId: zona.dealerId || null,
             });
         } else {
             form.setFieldsValue({
+                name: zona.name || '',
                 comuna: zona.comuna,
                 costoDespacho: zona.deliveryCost,
                 dealerId: zona.dealerId || null,
@@ -181,6 +190,7 @@ const ZonasDespacho = () => {
             if (tipoZona === 'comuna') {
                 payload = {
                     type: 'comuna',
+                    name: (values.name || '').trim(),
                     comuna: values.comuna,
                     deliveryCost: parseFloat(values.costoDespacho),
                     storeId: user.storeId,
@@ -203,6 +213,7 @@ const ZonasDespacho = () => {
 
                 payload = {
                     type: 'area',
+                    name: (values.name || '').trim(),
                     polygon: coords,
                     deliveryCost: parseFloat(values.costoDespacho),
                     storeId: user.storeId,
@@ -457,6 +468,7 @@ const ZonasDespacho = () => {
                                 <div className="grid gap-4">
                                     {paginatedZonas.map((zona) => (
                                         <Card key={zona._id} bordered>
+                                            <p><strong>Nombre:</strong> {zona.name || (zona.type === 'comuna' ? zona.comuna : '—')}</p>
                                             <p><strong>Tipo:</strong> {zona.type === 'comuna' ? 'Comuna' : 'Área'}</p>
                                             <p><strong>Costo Despacho:</strong> ${zona.deliveryCost}</p>
 
@@ -511,6 +523,15 @@ const ZonasDespacho = () => {
                                 <Radio value="comuna">Por Comuna</Radio>
                                 <Radio value="area">Por Área</Radio>
                             </Radio.Group>
+                        </Form.Item>
+
+                        <Form.Item
+                            name="name"
+                            label="Nombre de la Zona"
+                            rules={tipoZona === 'area' ? [{ required: true, message: 'Ingresa un nombre para la zona' }] : []}
+                            extra={tipoZona === 'comuna' ? 'Opcional. Si lo dejas vacío, se usará el nombre de la comuna.' : 'Requerido para identificar la zona.'}
+                        >
+                            <Input placeholder="Ej: Centro, Oriente, Sector Norte..." maxLength={60} />
                         </Form.Item>
 
                         {tipoZona === 'comuna' && (
