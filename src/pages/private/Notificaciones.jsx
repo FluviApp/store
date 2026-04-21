@@ -189,10 +189,6 @@ const Notificaciones = () => {
             message.error('La fecha fin es obligatoria');
             return;
         }
-        if (!editingAviso && !avisoFile) {
-            message.error('La imagen es obligatoria');
-            return;
-        }
 
         const fd = new FormData();
         fd.append('title', avisoForm.title.trim());
@@ -541,8 +537,8 @@ const Notificaciones = () => {
                 >
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium mb-2">Imagen {editingAviso ? '(opcional para reemplazar)' : '*'}</label>
-                            <p className="text-xs text-gray-500 mb-2">La imagen debe ser cuadrada de exactamente 300×300 px.</p>
+                            <label className="block text-sm font-medium mb-2">Imagen (opcional)</label>
+                            <p className="text-xs text-gray-500 mb-2">Si subes una, debe ser cuadrada de exactamente 300×300 px.</p>
                             <Upload
                                 beforeUpload={(file) => {
                                     const reader = new FileReader();
