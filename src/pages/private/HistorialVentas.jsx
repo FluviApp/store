@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import {
-    Table, Button, Modal, Space, Input, DatePicker, Card, Tag, Switch, Form, Select, Radio, Row, Col, message
+    Table, Button, Modal, Space, Input, DatePicker, Card, Tag, Switch, Form, Select, Radio, Row, Col, message, Tooltip
 } from 'antd';
 import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import { useAuth } from '../../context/AuthContext';
 import dayjs from 'dayjs';
 import useOrders from '../../hooks/useOrders';
+import useStoreInfo from '../../hooks/useStoreInfo';
 import Orders from '../../services/Orders.js';
 import ClientMap from '../../components/ClientMap.jsx';
 import useClients from '../../hooks/useClients.js';
@@ -41,6 +42,8 @@ const statusColorMap = {
 
 const HistorialVentas = () => {
     const { user } = useAuth();
+    const { data: storeInfoResp } = useStoreInfo();
+    const transferMessageTemplate = storeInfoResp?.data?.transferWhatsappMessage || '';
     const isMobile = useMediaQuery({ maxWidth: 768 });
     const [searchText, setSearchText] = useState('');
     const [dateRange, setDateRange] = useState([]);
@@ -88,23 +91,16 @@ const HistorialVentas = () => {
         const phone = order.customer?.phone?.replace(/[^0-9]/g, '');
 
         if (!isTransfer || !notPaid || !phone) return null;
+        if (!transferMessageTemplate.trim()) return null;
 
-        // Use the delivery date for the message, as requested
         const formattedDate = dayjs(order.deliveryDate).format('DD/MM/YYYY');
-        const total = order.finalPrice?.toLocaleString('es-CL') ?? '0';
+        const total = `$${order.finalPrice?.toLocaleString('es-CL') ?? '0'}`;
 
-        const message = encodeURIComponent(
-            `Holaaaaa! Espero estés súper! Te hablo de Fluvi para enviarte los datos de transferencia para el pago del pedido del ${formattedDate} por un monto de $${total} 😊💦💧.\n\n` +
-            `Si ya efectuaste el pago te agradeceríamos nos enviaras el comprobante! Que tengas un excelente día 🙌\n\n` +
-            `Cesar Barahona\n` +
-            `18.125.988-4\n` +
-            `Banco de Chile\n` +
-            `Cuenta Vista\n` +
-            `00-012-55212-17\n` +
-            `cesarabel44@gmail.com`
-        );
+        const resolved = transferMessageTemplate
+            .replaceAll('{{fecha}}', formattedDate)
+            .replaceAll('{{monto}}', total);
 
-        return `https://wa.me/56${phone}?text=${message}`;
+        return `https://wa.me/56${phone}?text=${encodeURIComponent(resolved)}`;
     };
 
     const handleDateSearch = () => {
@@ -503,7 +499,9 @@ const HistorialVentas = () => {
             key: 'whatsapp',
             render: (_, record) => {
                 const whatsappUrl = getWhatsappUrl(record);
-                return (
+                const isTransferNotPaid = record.paymentMethod === 'transferencia' && record.transferPay === false;
+                const missingTemplate = isTransferNotPaid && !transferMessageTemplate.trim();
+                const btn = (
                     <Button
                         type="default"
                         disabled={!whatsappUrl}
@@ -512,6 +510,14 @@ const HistorialVentas = () => {
                         Cobrar por WhatsApp
                     </Button>
                 );
+                if (missingTemplate) {
+                    return (
+                        <Tooltip title='Configura el mensaje en "Config. de pagos" antes de usar este botón'>
+                            {btn}
+                        </Tooltip>
+                    );
+                }
+                return btn;
             },
         },
     ];
@@ -772,13 +778,19 @@ const HistorialVentas = () => {
                                             >
                                                 Eliminar
                                             </Button>
-                                            <Button
-                                                type="default"
-                                                disabled={!whatsappUrl}
-                                                onClick={() => whatsappUrl && window.open(whatsappUrl, '_blank')}
-                                            >
-                                                Cobrar por WhatsApp
-                                            </Button>
+                                            {venta.paymentMethod === 'transferencia' && venta.transferPay === false && !transferMessageTemplate.trim() ? (
+                                                <Tooltip title='Configura el mensaje en "Config. de pagos"'>
+                                                    <Button type="default" disabled>Cobrar por WhatsApp</Button>
+                                                </Tooltip>
+                                            ) : (
+                                                <Button
+                                                    type="default"
+                                                    disabled={!whatsappUrl}
+                                                    onClick={() => whatsappUrl && window.open(whatsappUrl, '_blank')}
+                                                >
+                                                    Cobrar por WhatsApp
+                                                </Button>
+                                            )}
                                         </Space>
                                     </div>
                                 </Card>

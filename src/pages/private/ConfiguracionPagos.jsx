@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
-import { Card, Form, InputNumber, Button, message, Spin } from 'antd';
-import { CreditCardOutlined } from '@ant-design/icons';
+import { Card, Form, InputNumber, Input, Button, message, Spin, Tag } from 'antd';
+import { CreditCardOutlined, MessageOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useStoreInfo from '../../hooks/useStoreInfo.js';
 import Stores from '../../services/Store.js';
@@ -22,6 +22,7 @@ const ConfiguracionPagos = () => {
     const store = storeResp?.data || null;
     const paymentFees = store?.paymentFees || {};
     const taxPercent = Number(store?.taxPercent ?? 19);
+    const transferWhatsappMessage = store?.transferWhatsappMessage || '';
 
     useEffect(() => {
         if (!store) return;
@@ -39,8 +40,8 @@ const ConfiguracionPagos = () => {
             }
             pf[key] = { percent };
         });
-        form.setFieldsValue({ paymentFees: pf, taxPercent });
-    }, [store, paymentFees, taxPercent, form]);
+        form.setFieldsValue({ paymentFees: pf, taxPercent, transferWhatsappMessage });
+    }, [store, paymentFees, taxPercent, transferWhatsappMessage, form]);
 
     const onFinish = async (values) => {
         setSaving(true);
@@ -59,6 +60,7 @@ const ConfiguracionPagos = () => {
             const response = await Stores.updateInfo(user?.storeId, {
                 paymentFees: paymentFeesPayload,
                 taxPercent: Number.isFinite(taxPercentPayload) ? taxPercentPayload : 0,
+                transferWhatsappMessage: (values.transferWhatsappMessage || '').trim(),
             });
             if (response?.success) {
                 message.success(response.message || 'Configuración guardada');
@@ -126,6 +128,27 @@ const ConfiguracionPagos = () => {
                                             precision={2}
                                             placeholder="Ej: 19"
                                             style={{ width: 180 }}
+                                        />
+                                    </Form.Item>
+                                </div>
+
+                                <div className="mt-6 pt-4 border-t border-gray-200">
+                                    <div className="text-base font-semibold text-gray-800 mb-1 flex items-center gap-2">
+                                        <MessageOutlined />
+                                        Mensaje de cobro por transferencia
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        Se usa al apretar "Cobrar por WhatsApp" en Historial de ventas. Escribe tu saludo, instrucciones y datos bancarios. Si queda vacío, el botón estará deshabilitado.
+                                    </p>
+                                    <div className="mb-2 text-xs text-gray-500">
+                                        Variables: <Tag>{'{{fecha}}'}</Tag> <Tag>{'{{monto}}'}</Tag>
+                                    </div>
+                                    <Form.Item name="transferWhatsappMessage" className="mb-0">
+                                        <Input.TextArea
+                                            rows={10}
+                                            maxLength={2000}
+                                            showCount
+                                            placeholder={'Ej:\nHola! Te envío los datos para la transferencia del pedido del {{fecha}} por {{monto}}.\n\nNombre\nRUT\nBanco\nTipo de cuenta\nN° cuenta\nEmail'}
                                         />
                                     </Form.Item>
                                 </div>
