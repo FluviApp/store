@@ -11,6 +11,7 @@ import {
     EnvironmentOutlined,
     FileTextOutlined,
     CreditCardOutlined,
+    CalendarOutlined,
     LogoutOutlined
 } from '@ant-design/icons';
 
@@ -123,6 +124,9 @@ const Sidebar = () => {
             </Menu.Item>
             <Menu.Item key="13" icon={<CreditCardOutlined />}>
                 <Link to="/configuracionpagos">Config. de pagos</Link>
+            </Menu.Item>
+            <Menu.Item key="14" icon={<CalendarOutlined />}>
+                <Link to="/configuracionreparto">Config. de reparto</Link>
             </Menu.Item>
             <Menu.Item
                 key="logout"
