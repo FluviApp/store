@@ -12,7 +12,7 @@ import {
     AppstoreOutlined,
     ClockCircleOutlined,
     PhoneOutlined,
-    UserOutlined,
+    EnvironmentOutlined,
 } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import dayjs from 'dayjs';
@@ -156,11 +156,11 @@ const Cobros = () => {
 
     const columns = [
         {
-            title: 'Cliente',
+            title: 'Dirección',
             key: 'customer',
             render: (_, r) => (
                 <div>
-                    <div className="font-medium">{r.customer?.name || '—'}</div>
+                    <div className="font-medium">{r.customer?.address || '—'}</div>
                     <div className="text-xs text-gray-500">{r.customer?.phone || 'Sin teléfono'}</div>
                 </div>
             ),
@@ -201,9 +201,10 @@ const Cobros = () => {
                         <Col key={o._id} xs={24} sm={24} md={12} lg={8}>
                             <Card bordered className="shadow-sm h-full" bodyStyle={{ padding: 20 }}>
                                 <div className="flex justify-between items-start gap-3 mb-3">
-                                    <div>
-                                        <div className="font-semibold text-gray-800 flex items-center gap-2">
-                                            <UserOutlined /> {o.customer?.name || '—'}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-gray-800 flex items-start gap-2">
+                                            <EnvironmentOutlined className="mt-1" />
+                                            <span className="break-words">{o.customer?.address || '—'}</span>
                                         </div>
                                         <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
                                             <PhoneOutlined /> {o.customer?.phone || 'Sin teléfono'}
