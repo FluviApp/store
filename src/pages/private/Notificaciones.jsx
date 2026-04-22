@@ -14,6 +14,7 @@ import useAnnouncements from '../../hooks/useAnnouncements';
 import Notifications from '../../services/Notifications';
 import Announcements from '../../services/Announcements';
 import Sidebar from '../../components/Sidebar';
+import BackToAjustes from '../../components/BackToAjustes.jsx';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -417,11 +418,11 @@ const Notificaciones = () => {
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
+                <BackToAjustes />
                 <div className="mb-6">
                     <Row gutter={[16, 16]}>
                         <Col span={24} className="flex items-center justify-between">
                             <h1 className="text-3xl font-bold text-gray-800">Notificaciones</h1>
-                            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>Volver</Button>
                         </Col>
                     </Row>
                 </div>

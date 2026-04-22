@@ -60,8 +60,6 @@ const Sidebar = () => {
                 return ['5'];
             case '/pedidos':
                 return ['8'];
-            case '/notificaciones':
-                return ['11'];
             case '/cobros':
                 return ['cobros'];
             default:
@@ -74,6 +72,7 @@ const Sidebar = () => {
                     '/codigosdescuento',
                     '/configuracionpagos',
                     '/configuracionreparto',
+                    '/notificaciones',
                 ].some((p) => path.startsWith(p))) {
                     return ['ajustes'];
                 }
@@ -126,9 +125,6 @@ const Sidebar = () => {
                         <Badge count={pendingCobrosCount} overflowCount={99} style={{ backgroundColor: '#f5222d' }} />
                     )}
                 </Link>
-            </Menu.Item>
-            <Menu.Item key="11" icon={<FileTextOutlined />}>
-                <Link to="/notificaciones">Notificaciones</Link>
             </Menu.Item>
             <Menu.Item key="ajustes" icon={<SettingOutlined />}>
                 <Link to="/ajustes">Ajustes</Link>

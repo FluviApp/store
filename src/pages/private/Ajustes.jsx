@@ -9,6 +9,7 @@ import {
     TagOutlined,
     CreditCardOutlined,
     CalendarOutlined,
+    BellOutlined,
     RightOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
@@ -55,6 +56,13 @@ const items = [
         description: 'Zonas de despacho, feriados y fechas bloqueadas.',
         icon: <CalendarOutlined style={{ fontSize: 28, color: '#0ea5e9' }} />,
         path: '/configuracionreparto',
+    },
+    {
+        key: 'notificaciones',
+        title: 'Notificaciones',
+        description: 'Envía push a tus clientes y gestiona avisos al inicio.',
+        icon: <BellOutlined style={{ fontSize: 28, color: '#ea580c' }} />,
+        path: '/notificaciones',
     },
 ];
 
