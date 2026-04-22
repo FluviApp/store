@@ -58,8 +58,6 @@ const Sidebar = () => {
                 return ['5'];
             case '/repartidores':
                 return ['6'];
-            case '/zonasdespacho':
-                return ['7'];
             case '/pedidos':
                 return ['8'];
             case '/historialventas':
@@ -118,9 +116,6 @@ const Sidebar = () => {
             </Menu.Item>
             <Menu.Item key="6" icon={<CarOutlined />}>
                 <Link to="/repartidores">Repartidores</Link>
-            </Menu.Item>
-            <Menu.Item key="7" icon={<EnvironmentOutlined />}>
-                <Link to="/zonasdespacho">Zonas de despacho</Link>
             </Menu.Item>
             <Menu.Item key="8" icon={<FileTextOutlined />}>
                 <Link to="/pedidos">Pedidos</Link>

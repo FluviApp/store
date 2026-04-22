@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import Sidebar from '../../components/Sidebar.jsx';
 import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Select, Radio } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, AimOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
@@ -15,7 +14,7 @@ const comunasDeChile = [
     'Santiago', 'Ñuñoa', 'Providencia', 'La Florida', 'Puente Alto', 'Maipú',
 ];
 
-const ZonasDespacho = () => {
+const ZonasTab = () => {
     const { user } = useAuth();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [form] = Form.useForm();
@@ -369,25 +368,10 @@ const ZonasDespacho = () => {
     }, [isModalVisible]);
 
     return (
-
-        <div className="flex min-h-screen bg-gray-100">
-            {(() => {
-                if (mapLoaded && editingZone?.type === 'area') {
-                    console.log('Render condicional Polygon:', {
-                        coords: editPolygonCoords,
-                        length: editPolygonCoords.length,
-                        mapLoaded,
-                        editingZone
-                    });
-                }
-                return null;
-            })()}
-            <Sidebar />
-            <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-gray-800">Zonas de Despacho</h1>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAgregar}>Agregar Zona</Button>
-                </div>
+        <div>
+            <div className="flex justify-end mb-6">
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAgregar}>Agregar Zona</Button>
+            </div>
 
                 <div className="mb-6">
                     <Search
@@ -676,9 +660,8 @@ const ZonasDespacho = () => {
 
 
                 </Modal>
-            </div>
         </div>
     );
 };
 
-export default ZonasDespacho;
+export default ZonasTab;

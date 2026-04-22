@@ -10,7 +10,6 @@ import Categorias from '../src/pages/private/Categorias.jsx';
 import Subcategorias from '../src/pages/private/Subcategorias.jsx';
 import Productos from '../src/pages/private/Productos.jsx';
 import Repartidores from '../src/pages/private/Repartidores.jsx'
-import ZonasDespacho from '../src/pages/private/ZonasDespacho.jsx'
 import Pedidos from '../src/pages/private/Pedidos.jsx'
 import VentasPOS from '../src/pages/private/VentasPOS.jsx'
 import HistorialVentas from '../src/pages/private/HistorialVentas.jsx';
@@ -34,7 +33,7 @@ function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/categorias" element={<Categorias />} />
           <Route path="/repartidores" element={<Repartidores />} />
-          <Route path="/zonasdespacho" element={<ZonasDespacho />} />
+          <Route path="/zonasdespacho" element={<Navigate to="/configuracionreparto" replace />} />
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/historialventas" element={<HistorialVentas />} />
           <Route path="/banners" element={<BannersPage />} />
