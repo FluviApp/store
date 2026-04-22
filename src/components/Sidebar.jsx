@@ -13,6 +13,7 @@ import {
     CreditCardOutlined,
     CalendarOutlined,
     DollarOutlined,
+    SettingOutlined,
     LogoutOutlined
 } from '@ant-design/icons';
 
@@ -45,7 +46,8 @@ const Sidebar = () => {
     };
 
     const getSelectedKey = () => {
-        switch (location.pathname) {
+        const path = location.pathname;
+        switch (path) {
             case '/pos':
                 return ['1'];
             case '/metricas':
@@ -56,25 +58,25 @@ const Sidebar = () => {
                 return ['4'];
             case '/paquetes':
                 return ['5'];
-            case '/repartidores':
-                return ['6'];
             case '/pedidos':
                 return ['8'];
-            case '/historialventas':
-                return ['9'];
-            case '/banners':
-                return ['10'];
             case '/notificaciones':
                 return ['11'];
-            case '/codigosdescuento':
-                return ['12'];
-            case '/configuracionpagos':
-                return ['13'];
-            case '/configuracionreparto':
-                return ['14'];
             case '/cobros':
                 return ['cobros'];
             default:
+                // Sub-pantallas agrupadas en Ajustes
+                if ([
+                    '/ajustes',
+                    '/repartidores',
+                    '/historialventas',
+                    '/banners',
+                    '/codigosdescuento',
+                    '/configuracionpagos',
+                    '/configuracionreparto',
+                ].some((p) => path.startsWith(p))) {
+                    return ['ajustes'];
+                }
                 return ['1'];
         }
     };
@@ -114,14 +116,8 @@ const Sidebar = () => {
             <Menu.Item key="5" icon={<FileTextOutlined />}>
                 <Link to="/paquetes">Packs</Link>
             </Menu.Item>
-            <Menu.Item key="6" icon={<CarOutlined />}>
-                <Link to="/repartidores">Repartidores</Link>
-            </Menu.Item>
             <Menu.Item key="8" icon={<FileTextOutlined />}>
                 <Link to="/pedidos">Pedidos</Link>
-            </Menu.Item>
-            <Menu.Item key="9" icon={<FileTextOutlined />}>
-                <Link to="/historialventas">Historial de ventas</Link>
             </Menu.Item>
             <Menu.Item key="cobros" icon={<DollarOutlined />}>
                 <Link to="/cobros" className="flex items-center justify-between gap-2">
@@ -131,20 +127,11 @@ const Sidebar = () => {
                     )}
                 </Link>
             </Menu.Item>
-            <Menu.Item key="10" icon={<FileTextOutlined />}>
-                <Link to="/banners">Banners</Link>
-            </Menu.Item>
             <Menu.Item key="11" icon={<FileTextOutlined />}>
                 <Link to="/notificaciones">Notificaciones</Link>
             </Menu.Item>
-            <Menu.Item key="12" icon={<FileTextOutlined />}>
-                <Link to="/codigosdescuento">Codigos de descuento</Link>
-            </Menu.Item>
-            <Menu.Item key="13" icon={<CreditCardOutlined />}>
-                <Link to="/configuracionpagos">Config. de pagos</Link>
-            </Menu.Item>
-            <Menu.Item key="14" icon={<CalendarOutlined />}>
-                <Link to="/configuracionreparto">Config. de reparto</Link>
+            <Menu.Item key="ajustes" icon={<SettingOutlined />}>
+                <Link to="/ajustes">Ajustes</Link>
             </Menu.Item>
             <Menu.Item
                 key="logout"

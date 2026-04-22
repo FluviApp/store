@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
+import BackToAjustes from '../../components/BackToAjustes.jsx';
 import { Card, Form, InputNumber, Input, Button, message, Spin, Tag } from 'antd';
 import { CreditCardOutlined, MessageOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -80,6 +81,7 @@ const ConfiguracionPagos = () => {
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
+                <BackToAjustes />
                 <div className="max-w-2xl">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
                         <CreditCardOutlined />

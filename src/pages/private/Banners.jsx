@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import useBanners from '../../hooks/useBanners';
 import Banners from '../../services/Banners';
 import Sidebar from '../../components/Sidebar';
+import BackToAjustes from '../../components/BackToAjustes.jsx';
 import ModalCreateBanner from '../../components/ModalCreateBanner';
 import ModalEditBanner from '../../components/ModalEditBanner';
 
@@ -171,11 +172,11 @@ const BannersPage = () => {
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
+                <BackToAjustes />
                 <div className="mb-6">
                     <Row gutter={[16, 16]}>
                         <Col span={24} className="flex items-center justify-between">
                             <h1 className="text-3xl font-bold text-gray-800">Banners</h1>
-                            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>Volver</Button>
                         </Col>
                         <Col span={24} className="flex flex-col md:flex-row md:justify-end gap-2">
                             <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>Agregar Banner</Button>

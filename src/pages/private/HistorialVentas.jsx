@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
+import BackToAjustes from '../../components/BackToAjustes.jsx';
 import {
     Table, Button, Modal, Space, Input, DatePicker, Card, Tag, Switch, Form, Select, Radio, Row, Col, message, Tooltip
 } from 'antd';
@@ -528,6 +529,7 @@ const HistorialVentas = () => {
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
+                <BackToAjustes />
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold">Historial Ventas POS</h1>
                 </div>

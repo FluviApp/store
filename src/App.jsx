@@ -20,6 +20,7 @@ import CodigosDescuento from './pages/private/CodigosDescuento.jsx';
 import ConfiguracionPagos from './pages/private/ConfiguracionPagos.jsx';
 import ConfiguracionReparto from './pages/private/ConfiguracionReparto.jsx';
 import Cobros from './pages/private/Cobros.jsx';
+import Ajustes from './pages/private/Ajustes.jsx';
 // import Reclamos from './pages/private/Reclamos';
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
           <Route path="/configuracionpagos" element={<ConfiguracionPagos />} />
           <Route path="/configuracionreparto" element={<ConfiguracionReparto />} />
           <Route path="/cobros" element={<Cobros />} />
+          <Route path="/ajustes" element={<Ajustes />} />
 
           <Route path="/categorias/:id/subcategorias" element={<Subcategorias />} />
           <Route path="/productos/:subcategoryId" element={<Productos />} />
