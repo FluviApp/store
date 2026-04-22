@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Button } from 'antd';
+import { Layout, Menu, Button, Badge } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     MenuOutlined,
@@ -12,10 +12,12 @@ import {
     FileTextOutlined,
     CreditCardOutlined,
     CalendarOutlined,
+    DollarOutlined,
     LogoutOutlined
 } from '@ant-design/icons';
 
 import useStoreInfo from '../hooks/useStoreInfo'; // <— NUEVO
+import useOrders from '../hooks/useOrders';
 
 const { Sider } = Layout;
 
@@ -27,6 +29,15 @@ const Sidebar = () => {
     const { data: storeResp } = useStoreInfo(); // { success, data: store }
     const store = storeResp?.data || null;
     const toggleSidebar = () => setCollapsed(!collapsed);
+
+    // Contador de cobros pendientes (transferencias no pagadas)
+    const { data: pendingCobrosResp } = useOrders({
+        page: 1,
+        limit: 1,
+        paymentMethod: 'transferencia',
+        transferPay: false,
+    });
+    const pendingCobrosCount = pendingCobrosResp?.data?.totalDocs || 0;
 
     const handleLogout = () => {
         localStorage.removeItem('user');
@@ -61,6 +72,10 @@ const Sidebar = () => {
                 return ['12'];
             case '/configuracionpagos':
                 return ['13'];
+            case '/configuracionreparto':
+                return ['14'];
+            case '/cobros':
+                return ['cobros'];
             default:
                 return ['1'];
         }
@@ -112,6 +127,14 @@ const Sidebar = () => {
             </Menu.Item>
             <Menu.Item key="9" icon={<FileTextOutlined />}>
                 <Link to="/historialventas">Historial de ventas</Link>
+            </Menu.Item>
+            <Menu.Item key="cobros" icon={<DollarOutlined />}>
+                <Link to="/cobros" className="flex items-center justify-between gap-2">
+                    <span>Cobros</span>
+                    {pendingCobrosCount > 0 && (
+                        <Badge count={pendingCobrosCount} overflowCount={99} style={{ backgroundColor: '#f5222d' }} />
+                    )}
+                </Link>
             </Menu.Item>
             <Menu.Item key="10" icon={<FileTextOutlined />}>
                 <Link to="/banners">Banners</Link>

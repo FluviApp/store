@@ -3,7 +3,7 @@ import Orders from '../services/Orders';
 import { useAuth } from '../context/AuthContext';
 
 const useOrders = (params = {}) => {
-    const { page = 1, limit = 50, startDate, endDate, status, transferPay, deliveryType } = params;
+    const { page = 1, limit = 50, startDate, endDate, status, transferPay, paymentMethod, deliveryType } = params;
     const { user } = useAuth();
 
     // Limpiar parámetros undefined para que no se envíen como "undefined" string
@@ -12,11 +12,12 @@ const useOrders = (params = {}) => {
         limit,
         storeId: user?.storeId,
     };
-    
+
     if (startDate) cleanParams.startDate = startDate;
     if (endDate) cleanParams.endDate = endDate;
     if (status) cleanParams.status = status;
     if (typeof transferPay !== 'undefined' && transferPay !== null) cleanParams.transferPay = transferPay;
+    if (paymentMethod) cleanParams.paymentMethod = paymentMethod;
     if (deliveryType) cleanParams.deliveryType = deliveryType;
 
     console.log('🔍 useOrders - Params limpios:', cleanParams);
@@ -31,6 +32,7 @@ const useOrders = (params = {}) => {
             endDate,
             status,
             transferPay,
+            paymentMethod,
             deliveryType
         ],
         queryFn: () => Orders.getAll(cleanParams),
