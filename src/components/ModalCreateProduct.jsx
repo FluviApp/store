@@ -69,6 +69,28 @@ const ModalCreateProduct = ({
                     />
                 </Form.Item>
 
+                <Form.Item
+                    name="priceMayorista"
+                    label="Precio mayorista (opcional)"
+                    extra="Se aplica solo a clientes marcados como mayoristas. Vacío = sin precio especial."
+                    rules={[
+                        {
+                            validator: (_, value) =>
+                                !value || /^\d+$/.test(value)
+                                    ? Promise.resolve()
+                                    : Promise.reject('Solo números enteros'),
+                        },
+                    ]}
+                >
+                    <Input
+                        placeholder="$"
+                        onChange={(e) => {
+                            const cleaned = e.target.value.replace(/[^\d]/g, '');
+                            form.setFieldsValue({ priceMayorista: cleaned });
+                        }}
+                    />
+                </Form.Item>
+
                 <Form.Item name="isFeatured" valuePropName="checked">
                     <Checkbox>¿Producto destacado?</Checkbox>
                 </Form.Item>

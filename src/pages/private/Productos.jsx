@@ -225,6 +225,7 @@ const Productos = () => {
         formData.append('detail', values.detail || '');
         formData.append('priceBase', values.priceBase || 0);
         formData.append('priceDiscount', values.priceDiscount || 0);
+        formData.append('priceMayorista', values.priceMayorista || 0);
         formData.append('isFeatured', values.isFeatured || false);
         formData.append('available', values.available || false);
 
@@ -261,6 +262,7 @@ const Productos = () => {
             detail: item.detail,
             priceBase: item.priceBase,
             priceDiscount: item.priceDiscount,
+            priceMayorista: item.priceMayorista || '',
             isFeatured: item.isFeatured,
             available: item.available,
             variants: item.variants || [],
@@ -299,6 +301,7 @@ const Productos = () => {
         formData.append('detail', values.detail || '');
         formData.append('priceBase', values.priceBase || 0);
         formData.append('priceDiscount', values.priceDiscount || 0);
+        formData.append('priceMayorista', values.priceMayorista || 0);
         formData.append('isFeatured', values.isFeatured || false);
         formData.append('available', values.available || false);
         formData.append('variants', JSON.stringify([]));

@@ -1,7 +1,7 @@
 // Clientes.jsx
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
-import { Table, Button, Space, Input, Modal, Form, Card, message, Empty } from 'antd';
+import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Switch, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import { GoogleMap, Marker, Autocomplete } from '@react-google-maps/api';
@@ -25,6 +25,7 @@ const Clientes = () => {
     const [selectedLng, setSelectedLng] = useState(null);
     const [mapVisible, setMapVisible] = useState(false);
     const [autocompleteRef, setAutocompleteRef] = useState(null);
+    const [isMayorista, setIsMayorista] = useState(false);
 
     const { data, isLoading, refetch } = useClients({ page: 1, limit: 100 });
     const clients = data?.data?.docs || [];
@@ -59,6 +60,13 @@ const Clientes = () => {
         { title: 'Teléfono', dataIndex: 'phone', key: 'phone' },
         { title: 'Dirección', dataIndex: 'address', key: 'address' },
         {
+            title: 'Tipo',
+            key: 'tipo',
+            render: (_, record) => record.isMayorista
+                ? <Tag color="gold">Mayorista</Tag>
+                : <Tag>Regular</Tag>,
+        },
+        {
             title: 'Acciones',
             key: 'acciones',
             render: (_, record) => (
@@ -77,6 +85,7 @@ const Clientes = () => {
         setSelectedLat(null);
         setSelectedLng(null);
         setMapVisible(false); // 👈 reiniciás visibilidad
+        setIsMayorista(false);
         setIsModalVisible(true);
     };
 
@@ -94,6 +103,7 @@ const Clientes = () => {
         setSelectedLat(client.lat ?? null);
         setSelectedLng(client.lon ?? null);
         setMapVisible(client.lat !== null && client.lon !== null);
+        setIsMayorista(!!client.isMayorista);
         setIsModalVisible(true);
     };
 
@@ -112,6 +122,7 @@ const Clientes = () => {
                     verified: false,
                     token: '',
                     storeId: user.storeId,
+                    isMayorista,
                 };
 
                 console.log('🚀 Payload a enviar:', payload);
@@ -234,6 +245,7 @@ const Clientes = () => {
                                         <p><strong>Nombre:</strong> {client.name}</p>
                                         <p><strong>Correo:</strong> {client.email}</p>
                                         <p><strong>Teléfono:</strong> {client.phone}</p>
+                                        <p><strong>Tipo:</strong> {client.isMayorista ? <Tag color="gold">Mayorista</Tag> : <Tag>Regular</Tag>}</p>
                                         <div className="flex gap-2 mt-2">
                                             <Button size="small" type="primary" icon={<EditOutlined />} onClick={() => handleEditar(client)}>Editar</Button>
                                             <Button size="small" type="danger" icon={<DeleteOutlined />} onClick={() => handleDelete(client)}>Eliminar</Button>
@@ -321,6 +333,20 @@ const Clientes = () => {
 
                         <Form.Item name="telefono" label="Teléfono" rules={[{ required: true, message: 'Por favor ingresa el teléfono' }]}>
                             <Input addonBefore="+56" placeholder="123456789" />
+                        </Form.Item>
+
+                        <Form.Item label="Cliente mayorista">
+                            <div className="flex items-center gap-3">
+                                <Switch
+                                    checked={isMayorista}
+                                    onChange={setIsMayorista}
+                                    checkedChildren="Sí"
+                                    unCheckedChildren="No"
+                                />
+                                <span className="text-sm text-gray-500">
+                                    Los mayoristas ven precios especiales en los productos que tengan "Precio mayorista" configurado.
+                                </span>
+                            </div>
                         </Form.Item>
                     </Form>
                 </Modal>
