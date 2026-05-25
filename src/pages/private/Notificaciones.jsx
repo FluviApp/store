@@ -282,6 +282,11 @@ const Notificaciones = () => {
     };
 
     // ===== CORREOS HANDLERS =====
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
     const handleOpenEmailModal = () => {
         setEmailForm({
             recipientType: 'SINGLE',
@@ -323,6 +328,11 @@ const Notificaciones = () => {
             const selectedClientObj = allClients.find(c => c._id === emailForm.selectedClient);
             if (!selectedClientObj?.email) {
                 message.error('El cliente no tiene email registrado');
+                return;
+            }
+
+            if (!validateEmail(selectedClientObj.email)) {
+                message.error(`El email "${selectedClientObj.email}" no tiene un formato válido`);
                 return;
             }
 
