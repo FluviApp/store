@@ -777,45 +777,45 @@ const Notificaciones = () => {
                         </div>
 
                         {emailForm.recipientType === 'SINGLE' ? (
-                            <div>
+                            <div key="single-client">
                                 <label className="block text-sm font-medium mb-2">Cliente *</label>
                                 <Select
+                                    key={`select-single-${allClients.length}`}
                                     style={{ width: '100%' }}
                                     placeholder="Selecciona un cliente"
-                                    value={emailForm.selectedClient}
+                                    value={emailForm.selectedClient || undefined}
                                     onChange={(value) => setEmailForm({ ...emailForm, selectedClient: value })}
                                     showSearch
-                                    filterOption={(input, option) =>
-                                        option?.children?.toLowerCase().includes(input.toLowerCase())
-                                    }
+                                    optionFilterProp="label"
                                 >
                                     {allClients.map(client => (
-                                        <Option key={client._id} value={client._id}>
+                                        <Option key={client._id} value={client._id} label={`${client.name || 'Sin nombre'} - ${client.email}`}>
                                             {client.name || 'Sin nombre'} - {client.email}
                                         </Option>
                                     ))}
                                 </Select>
+                                {allClients.length === 0 && <p className="text-xs text-yellow-600 mt-1">⚠️ No hay clientes disponibles</p>}
                             </div>
                         ) : (
-                            <div>
+                            <div key="multiple-clients">
                                 <label className="block text-sm font-medium mb-2">Clientes *</label>
                                 <Select
+                                    key={`select-multiple-${allClients.length}`}
                                     mode="multiple"
                                     style={{ width: '100%' }}
                                     placeholder="Selecciona clientes"
-                                    value={emailForm.selectedClients}
+                                    value={emailForm.selectedClients || []}
                                     onChange={(value) => setEmailForm({ ...emailForm, selectedClients: value })}
                                     showSearch
-                                    filterOption={(input, option) =>
-                                        option?.children?.toLowerCase().includes(input.toLowerCase())
-                                    }
+                                    optionFilterProp="label"
                                 >
                                     {allClients.map(client => (
-                                        <Option key={client._id} value={client._id}>
+                                        <Option key={client._id} value={client._id} label={`${client.name || 'Sin nombre'} - ${client.email}`}>
                                             {client.name || 'Sin nombre'} - {client.email}
                                         </Option>
                                     ))}
                                 </Select>
+                                {allClients.length === 0 && <p className="text-xs text-yellow-600 mt-1">⚠️ No hay clientes disponibles</p>}
                             </div>
                         )}
 
