@@ -68,13 +68,14 @@ const Notificaciones = () => {
     const [emailSearch, setEmailSearch] = useState('');
     const [emailModalVisible, setEmailModalVisible] = useState(false);
     const [emailForm, setEmailForm] = useState({
-        recipientType: 'SINGLE', // SINGLE o MULTIPLE
+        recipientType: 'SINGLE', // SINGLE, MULTIPLE o ALL
         selectedClient: '',
         selectedClients: [],
         subject: '',
         message: ''
     });
     const [emailSubmitting, setEmailSubmitting] = useState(false);
+    const [confirmSendAll, setConfirmSendAll] = useState(false);
 
     const filteredNotifications = searchText
         ? notifications.filter(n => n.title.toLowerCase().includes(searchText.toLowerCase()))
@@ -300,6 +301,7 @@ const Notificaciones = () => {
 
     const handleCloseEmailModal = () => {
         setEmailModalVisible(false);
+        setConfirmSendAll(false);
         setEmailForm({
             recipientType: 'SINGLE',
             selectedClient: '',
@@ -316,6 +318,19 @@ const Notificaciones = () => {
         }
         if (!emailForm.message?.trim()) {
             message.error('El mensaje es obligatorio');
+            return;
+        }
+
+        // Si es envío a todos, pedir confirmación
+        if (emailForm.recipientType === 'ALL' && !confirmSendAll) {
+            Modal.confirm({
+                title: '⚠️ Enviar a todos los clientes',
+                content: `¿Estás seguro de que quieres enviar este correo a ${allClients.length} clientes?`,
+                okText: 'Sí, enviar',
+                okType: 'danger',
+                cancelText: 'Cancelar',
+                onOk: () => setConfirmSendAll(true),
+            });
             return;
         }
 
@@ -358,7 +373,7 @@ const Notificaciones = () => {
             } finally {
                 setEmailSubmitting(false);
             }
-        } else {
+        } else if (emailForm.recipientType === 'MULTIPLE') {
             if (emailForm.selectedClients.length === 0) {
                 message.error('Debes seleccionar al menos un cliente');
                 return;
@@ -377,6 +392,31 @@ const Notificaciones = () => {
                     message.success(`Correos enviados: ${response?.data?.data?.sent}/${response?.data?.data?.total}`);
                     refetchEmails();
                     handleCloseEmailModal();
+                    setConfirmSendAll(false);
+                } else {
+                    message.error(response?.data?.message || 'No se pudieron enviar los correos');
+                }
+            } catch (err) {
+                message.error(err.message || 'Error al enviar los correos');
+            } finally {
+                setEmailSubmitting(false);
+            }
+        } else if (emailForm.recipientType === 'ALL') {
+            try {
+                setEmailSubmitting(true);
+                const allClientIds = allClients.map(c => c._id);
+                const response = await StoreEmails.sendMultiple({
+                    storeId: user.storeId,
+                    clientIds: allClientIds,
+                    subject: emailForm.subject.trim(),
+                    message: emailForm.message.trim()
+                });
+
+                if (response?.data?.success) {
+                    message.success(`✅ ¡Correos enviados a ${response?.data?.data?.sent}/${response?.data?.data?.total} clientes!`);
+                    refetchEmails();
+                    handleCloseEmailModal();
+                    setConfirmSendAll(false);
                 } else {
                     message.error(response?.data?.message || 'No se pudieron enviar los correos');
                 }
@@ -779,14 +819,15 @@ const Notificaciones = () => {
                             <Select
                                 style={{ width: '100%' }}
                                 value={emailForm.recipientType}
-                                onChange={(value) => setEmailForm({ ...emailForm, recipientType: value })}
+                                onChange={(value) => setEmailForm({ ...emailForm, recipientType: value, confirmSendAll: false })}
                             >
                                 <Option value="SINGLE">👤 Enviar a un cliente específico</Option>
                                 <Option value="MULTIPLE">👥 Enviar a múltiples clientes</Option>
+                                <Option value="ALL">📢 Enviar a TODOS ({allClients.length} clientes)</Option>
                             </Select>
                         </div>
 
-                        {emailForm.recipientType === 'SINGLE' ? (
+                        {emailForm.recipientType === 'SINGLE' && (
                             <div key="single-client">
                                 <label className="block text-sm font-medium mb-2">Cliente *</label>
                                 <Select
@@ -806,7 +847,9 @@ const Notificaciones = () => {
                                 </Select>
                                 {allClients.length === 0 && <p className="text-xs text-yellow-600 mt-1">⚠️ No hay clientes disponibles</p>}
                             </div>
-                        ) : (
+                        )}
+
+                        {emailForm.recipientType === 'MULTIPLE' && (
                             <div key="multiple-clients">
                                 <label className="block text-sm font-medium mb-2">Clientes *</label>
                                 <Select
@@ -826,6 +869,15 @@ const Notificaciones = () => {
                                     ))}
                                 </Select>
                                 {allClients.length === 0 && <p className="text-xs text-yellow-600 mt-1">⚠️ No hay clientes disponibles</p>}
+                            </div>
+                        )}
+
+                        {emailForm.recipientType === 'ALL' && (
+                            <div key="all-clients" className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm text-blue-900 font-medium">
+                                    📢 Este correo será enviado a <strong>{allClients.length} clientes</strong>
+                                </p>
+                                <p className="text-xs text-blue-700 mt-2">Se enviará únicamente a clientes con email válido.</p>
                             </div>
                         )}
 
