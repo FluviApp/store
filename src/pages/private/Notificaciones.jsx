@@ -11,8 +11,10 @@ import { useAuth } from '../../context/AuthContext';
 import useNotifications from '../../hooks/useNotifications';
 import useClients from '../../hooks/useClients';
 import useAnnouncements from '../../hooks/useAnnouncements';
+import useStoreEmails from '../../hooks/useStoreEmails';
 import Notifications from '../../services/Notifications';
 import Announcements from '../../services/Announcements';
+import StoreEmails from '../../services/StoreEmails';
 import Sidebar from '../../components/Sidebar';
 import BackToAjustes from '../../components/BackToAjustes.jsx';
 
@@ -60,6 +62,20 @@ const Notificaciones = () => {
     const [avisoFile, setAvisoFile] = useState(null);
     const [avisoSubmitting, setAvisoSubmitting] = useState(false);
 
+    // ===== CORREOS STATE =====
+    const { data: emailsData, refetch: refetchEmails, isLoading: isLoadingEmails } = useStoreEmails(1, 10);
+    const emails = emailsData?.data?.docs || [];
+    const [emailSearch, setEmailSearch] = useState('');
+    const [emailModalVisible, setEmailModalVisible] = useState(false);
+    const [emailForm, setEmailForm] = useState({
+        recipientType: 'SINGLE', // SINGLE o MULTIPLE
+        selectedClient: '',
+        selectedClients: [],
+        subject: '',
+        message: ''
+    });
+    const [emailSubmitting, setEmailSubmitting] = useState(false);
+
     const filteredNotifications = searchText
         ? notifications.filter(n => n.title.toLowerCase().includes(searchText.toLowerCase()))
         : notifications;
@@ -70,6 +86,13 @@ const Notificaciones = () => {
             a.message?.toLowerCase().includes(avisoSearch.toLowerCase())
         )
         : announcements;
+
+    const filteredEmails = emailSearch
+        ? emails.filter(e =>
+            e.recipientEmail?.toLowerCase().includes(emailSearch.toLowerCase()) ||
+            e.subject?.toLowerCase().includes(emailSearch.toLowerCase())
+        )
+        : emails;
 
     const handleDelete = (item) => {
         Modal.confirm({
@@ -258,6 +281,124 @@ const Notificaciones = () => {
         }
     };
 
+    // ===== CORREOS HANDLERS =====
+    const handleOpenEmailModal = () => {
+        setEmailForm({
+            recipientType: 'SINGLE',
+            selectedClient: '',
+            selectedClients: [],
+            subject: '',
+            message: ''
+        });
+        setEmailModalVisible(true);
+    };
+
+    const handleCloseEmailModal = () => {
+        setEmailModalVisible(false);
+        setEmailForm({
+            recipientType: 'SINGLE',
+            selectedClient: '',
+            selectedClients: [],
+            subject: '',
+            message: ''
+        });
+    };
+
+    const handleSubmitEmail = async () => {
+        if (!emailForm.subject?.trim()) {
+            message.error('El asunto es obligatorio');
+            return;
+        }
+        if (!emailForm.message?.trim()) {
+            message.error('El mensaje es obligatorio');
+            return;
+        }
+
+        if (emailForm.recipientType === 'SINGLE') {
+            if (!emailForm.selectedClient) {
+                message.error('Debes seleccionar un cliente');
+                return;
+            }
+
+            const selectedClientObj = allClients.find(c => c._id === emailForm.selectedClient);
+            if (!selectedClientObj?.email) {
+                message.error('El cliente no tiene email registrado');
+                return;
+            }
+
+            try {
+                setEmailSubmitting(true);
+                const response = await StoreEmails.send({
+                    storeId: user.storeId,
+                    recipientEmail: selectedClientObj.email,
+                    recipientName: selectedClientObj.name || '',
+                    subject: emailForm.subject.trim(),
+                    message: emailForm.message.trim()
+                });
+
+                if (response?.data?.success) {
+                    message.success('Correo enviado exitosamente');
+                    refetchEmails();
+                    handleCloseEmailModal();
+                } else {
+                    message.error(response?.data?.message || 'No se pudo enviar el correo');
+                }
+            } catch (err) {
+                message.error(err.message || 'Error al enviar el correo');
+            } finally {
+                setEmailSubmitting(false);
+            }
+        } else {
+            if (emailForm.selectedClients.length === 0) {
+                message.error('Debes seleccionar al menos un cliente');
+                return;
+            }
+
+            try {
+                setEmailSubmitting(true);
+                const response = await StoreEmails.sendMultiple({
+                    storeId: user.storeId,
+                    clientIds: emailForm.selectedClients,
+                    subject: emailForm.subject.trim(),
+                    message: emailForm.message.trim()
+                });
+
+                if (response?.data?.success) {
+                    message.success(`Correos enviados: ${response?.data?.data?.sent}/${response?.data?.data?.total}`);
+                    refetchEmails();
+                    handleCloseEmailModal();
+                } else {
+                    message.error(response?.data?.message || 'No se pudieron enviar los correos');
+                }
+            } catch (err) {
+                message.error(err.message || 'Error al enviar los correos');
+            } finally {
+                setEmailSubmitting(false);
+            }
+        }
+    };
+
+    const handleDeleteEmail = (item) => {
+        Modal.confirm({
+            title: '¿Eliminar historial?',
+            content: `Esta acción no se puede deshacer. Correo a: ${item.recipientEmail}`,
+            okText: 'Sí, eliminar',
+            okType: 'danger',
+            cancelText: 'Cancelar',
+            onOk: async () => {
+                try {
+                    const response = await StoreEmails.delete(item._id);
+                    if (response?.data?.success) {
+                        message.success('Registro eliminado');
+                        refetchEmails();
+                    }
+                } catch (err) {
+                    message.error(err.message || 'Error al eliminar');
+                }
+            }
+        });
+    };
+
     const columns = [
         { title: 'Título', dataIndex: 'title', key: 'title' },
         { title: 'Cuerpo', dataIndex: 'body', key: 'body' },
@@ -318,6 +459,42 @@ const Notificaciones = () => {
         },
     ];
 
+    const emailColumns = [
+        { title: 'Destinatario', dataIndex: 'recipientEmail', key: 'recipientEmail' },
+        { title: 'Asunto', dataIndex: 'subject', key: 'subject' },
+        {
+            title: 'Mensaje',
+            dataIndex: 'message',
+            key: 'message',
+            render: (text) => text?.length > 60 ? `${text.slice(0, 60)}...` : text,
+        },
+        {
+            title: 'Estado',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status) => {
+                const statusColors = { sent: 'green', failed: 'red', pending: 'orange' };
+                const statusLabels = { sent: 'Enviado', failed: 'Error', pending: 'Pendiente' };
+                return <Tag color={statusColors[status]}>{statusLabels[status]}</Tag>;
+            },
+        },
+        {
+            title: 'Fecha',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (d) => d ? dayjs(d).format('DD/MM/YYYY HH:mm') : '—',
+        },
+        {
+            title: 'Acciones',
+            key: 'acciones',
+            render: (_, record) => (
+                <Space>
+                    <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteEmail(record)}>Eliminar</Button>
+                </Space>
+            ),
+        },
+    ];
+
     const notificationsTab = (
         <>
             <div className="mb-4 flex flex-col md:flex-row md:justify-between gap-2">
@@ -354,6 +531,55 @@ const Notificaciones = () => {
                     columns={columns}
                     rowKey="_id"
                     loading={isLoading}
+                    pagination={{ pageSize: 5, position: ['bottomCenter'] }}
+                    bordered
+                />
+            )}
+        </>
+    );
+
+    const correosTab = (
+        <>
+            <div className="mb-4 flex flex-col md:flex-row md:justify-between gap-2">
+                <Search
+                    placeholder="Buscar por email o asunto"
+                    allowClear
+                    enterButton={<SearchOutlined />}
+                    size="large"
+                    onSearch={setEmailSearch}
+                    onChange={(e) => setEmailSearch(e.target.value)}
+                    className="md:max-w-md w-full"
+                />
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenEmailModal()}>Enviar Correo</Button>
+            </div>
+
+            {isMobile ? (
+                filteredEmails.length > 0 ? (
+                    <div className="grid gap-4">
+                        {filteredEmails.map(e => (
+                            <Card key={e._id} bordered>
+                                <p><strong>Para:</strong> {e.recipientEmail}</p>
+                                <p><strong>Asunto:</strong> {e.subject}</p>
+                                <p className="text-gray-600">{e.message.substring(0, 100)}...</p>
+                                <div className="mt-2 mb-2">
+                                    <Tag color={e.status === 'sent' ? 'green' : e.status === 'failed' ? 'red' : 'orange'}>
+                                        {e.status === 'sent' ? 'Enviado' : e.status === 'failed' ? 'Error' : 'Pendiente'}
+                                    </Tag>
+                                </div>
+                                <p className="text-xs text-gray-500">{dayjs(e.createdAt).format('DD/MM/YYYY HH:mm')}</p>
+                                <Space>
+                                    <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteEmail(e)}>Eliminar</Button>
+                                </Space>
+                            </Card>
+                        ))}
+                    </div>
+                ) : <Empty description="No hay correos" />
+            ) : (
+                <Table
+                    dataSource={filteredEmails}
+                    columns={emailColumns}
+                    rowKey="_id"
+                    loading={isLoadingEmails}
                     pagination={{ pageSize: 5, position: ['bottomCenter'] }}
                     bordered
                 />
@@ -432,6 +658,7 @@ const Notificaciones = () => {
                     items={[
                         { key: 'notifications', label: 'Notificaciones', children: notificationsTab },
                         { key: 'avisos', label: 'Avisos', children: avisosTab },
+                        { key: 'correos', label: '📧 Correos de Aviso', children: correosTab },
                     ]}
                 />
 
@@ -523,6 +750,122 @@ const Notificaciones = () => {
                                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                             />
                         </div>
+                    </div>
+                </Modal>
+
+                <Modal
+                    open={emailModalVisible}
+                    onCancel={handleCloseEmailModal}
+                    onOk={handleSubmitEmail}
+                    okText="Enviar"
+                    cancelText="Cancelar"
+                    title="Enviar Correo de Aviso"
+                    width={700}
+                    confirmLoading={emailSubmitting}
+                >
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Tipo de envío *</label>
+                            <Select
+                                style={{ width: '100%' }}
+                                value={emailForm.recipientType}
+                                onChange={(value) => setEmailForm({ ...emailForm, recipientType: value })}
+                            >
+                                <Option value="SINGLE">👤 Enviar a un cliente específico</Option>
+                                <Option value="MULTIPLE">👥 Enviar a múltiples clientes</Option>
+                            </Select>
+                        </div>
+
+                        {emailForm.recipientType === 'SINGLE' ? (
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Cliente *</label>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Selecciona un cliente"
+                                    value={emailForm.selectedClient}
+                                    onChange={(value) => setEmailForm({ ...emailForm, selectedClient: value })}
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        option?.children?.toLowerCase().includes(input.toLowerCase())
+                                    }
+                                >
+                                    {allClients.map(client => (
+                                        <Option key={client._id} value={client._id}>
+                                            {client.name || 'Sin nombre'} - {client.email}
+                                        </Option>
+                                    ))}
+                                </Select>
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Clientes *</label>
+                                <Select
+                                    mode="multiple"
+                                    style={{ width: '100%' }}
+                                    placeholder="Selecciona clientes"
+                                    value={emailForm.selectedClients}
+                                    onChange={(value) => setEmailForm({ ...emailForm, selectedClients: value })}
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        option?.children?.toLowerCase().includes(input.toLowerCase())
+                                    }
+                                >
+                                    {allClients.map(client => (
+                                        <Option key={client._id} value={client._id}>
+                                            {client.name || 'Sin nombre'} - {client.email}
+                                        </Option>
+                                    ))}
+                                </Select>
+                            </div>
+                        )}
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Asunto *</label>
+                            <Input
+                                placeholder="Ej: Actualización importante de tu cuenta"
+                                value={emailForm.subject}
+                                onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                                maxLength={120}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Mensaje *</label>
+                            <Input.TextArea
+                                placeholder="Escribe el mensaje que deseas enviar..."
+                                value={emailForm.message}
+                                onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
+                                rows={6}
+                            />
+                        </div>
+
+                        {emailForm.message && (
+                            <div className="border rounded-lg p-4 bg-gray-50">
+                                <p className="text-sm font-medium mb-3">📧 Preview del correo:</p>
+                                <div
+                                    style={{
+                                        border: '1px solid #ddd',
+                                        borderRadius: '8px',
+                                        padding: '16px',
+                                        backgroundColor: '#fefefe',
+                                        fontSize: '14px',
+                                        fontFamily: 'Arial, sans-serif'
+                                    }}
+                                >
+                                    <div style={{ textAlign: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid #0099FF' }}>
+                                        <h3 style={{ color: '#0099FF', margin: '0' }}>💧 Fluvi</h3>
+                                    </div>
+                                    <div style={{ color: '#333', lineHeight: '1.6' }}>
+                                        {emailForm.message.split('\n').map((line, idx) => (
+                                            <p key={idx} style={{ margin: '8px 0' }}>{line || ' '}</p>
+                                        ))}
+                                    </div>
+                                    <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '12px', fontSize: '12px', color: '#aaa' }}>
+                                        <p style={{ margin: '0' }}>Este correo fue generado automáticamente. No respondas a esta dirección.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </Modal>
 
