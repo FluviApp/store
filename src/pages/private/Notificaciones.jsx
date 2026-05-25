@@ -844,54 +844,40 @@ const Notificaciones = () => {
                                 <p className="text-sm font-medium mb-3">📧 Preview del correo:</p>
                                 <div
                                     style={{
-                                        maxWidth: '100%',
-                                        backgroundColor: '#f5f7fa',
-                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                        fontSize: '14px'
+                                        fontFamily: 'Arial, sans-serif',
+                                        maxWidth: '600px',
+                                        margin: 'auto',
+                                        background: '#fefefe',
+                                        borderRadius: '12px',
+                                        padding: '24px',
+                                        border: '1px solid #eee'
                                     }}
                                 >
-                                    {/* Header */}
-                                    <div style={{
-                                        background: 'linear-gradient(135deg, #0099FF 0%, #0077CC 100%)',
-                                        borderRadius: '12px 12px 0 0',
-                                        padding: '30px',
-                                        textAlign: 'center',
-                                        color: 'white'
-                                    }}>
-                                        <div style={{ fontSize: '36px', marginBottom: '8px' }}>💧</div>
-                                        <h3 style={{ color: 'white', margin: '0', fontSize: '24px', fontWeight: '600' }}>Fluvi</h3>
-                                        <p style={{ color: 'rgba(255,255,255,0.9)', margin: '6px 0 0 0', fontSize: '12px' }}>Notificación importante</p>
-                                    </div>
+                                    <h2 style={{ color: '#0099FF', marginTop: '0' }}>📢 Notificación de Fluvi</h2>
 
-                                    {/* Contenido */}
-                                    <div style={{
-                                        backgroundColor: 'white',
-                                        padding: '30px',
-                                        borderRadius: '0 0 12px 12px',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                    }}>
-                                        <div style={{ color: '#2c3e50', lineHeight: '1.8' }}>
-                                            {emailForm.message.split('\n').map((line, idx) => (
-                                                <p key={idx} style={{ margin: line.trim() ? '0 0 12px 0' : '6px 0', color: '#2c3e50' }}>
-                                                    {line || ' '}
+                                    <div style={{ fontSize: '16px', color: '#333', lineHeight: '1.6' }}>
+                                        {emailForm.message.split('\n').map((line, idx) => {
+                                            const trimmed = line.trim();
+                                            if (!trimmed) {
+                                                return <p key={idx} style={{ margin: '12px 0' }}>&nbsp;</p>;
+                                            }
+                                            return (
+                                                <p key={idx} style={{ margin: '12px 0', color: '#333' }}>
+                                                    {line}
                                                 </p>
-                                            ))}
-                                        </div>
-
-                                        <div style={{ margin: '24px 0', borderTop: '1px solid #e8eef7' }}></div>
-
-                                        <div style={{
-                                            backgroundColor: '#f8fafc',
-                                            borderRadius: '8px',
-                                            padding: '16px',
-                                            textAlign: 'center'
-                                        }}>
-                                            <p style={{ fontSize: '12px', color: '#7f8fa3', margin: '0', lineHeight: '1.6' }}>
-                                                <strong>Fluvi</strong><br />
-                                                Este es un correo automático. Por favor no respondas a este mensaje.
-                                            </p>
-                                        </div>
+                                            );
+                                        })}
                                     </div>
+
+                                    <div style={{ marginTop: '24px', background: '#f1faff', padding: '16px', borderRadius: '8px' }}>
+                                        <p style={{ fontSize: '14px', color: '#0099FF', margin: '0' }}>
+                                            ✨ Gracias por confiar en Fluvi 💧
+                                        </p>
+                                    </div>
+
+                                    <p style={{ fontSize: '12px', color: '#aaa', marginTop: '24px', borderTop: '1px solid #eee', paddingTop: '16px', margin: '24px 0 0 0' }}>
+                                        Este correo fue generado automáticamente. No respondas a esta dirección.
+                                    </p>
                                 </div>
                             </div>
                         )}
