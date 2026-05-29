@@ -9,7 +9,10 @@ const useFilteredClients = () => {
     const [error, setError] = useState(null);
 
     const getFilteredClients = useCallback(async (filters) => {
+        console.log('🔍 [Hook] getFilteredClients llamado con filters:', filters);
+
         if (!user?.storeId) {
+            console.error('❌ [Hook] No storeId available');
             setError('No storeId available');
             return null;
         }
@@ -44,17 +47,26 @@ const useFilteredClients = () => {
                 params.append('maxSpent', filters.maxSpent);
             }
 
-            const response = await axios.get(`/api/store/clients/filter?${params.toString()}`);
+            const url = `/api/store/clients/filter?${params.toString()}`;
+            console.log('📡 [Hook] URL de request:', url);
+
+            const response = await axios.get(url);
+            console.log('✅ [Hook] Response recibido:', response.data);
 
             if (response.data?.success) {
+                const clientsCount = (response.data.data || []).length;
+                console.log('🎯 [Hook] Clientes encontrados:', clientsCount);
                 setFilteredClients(response.data.data || []);
                 return response.data.data || [];
             } else {
-                setError(response.data?.message || 'Error filtering clients');
+                const errorMsg = response.data?.message || 'Error filtering clients';
+                console.error('❌ [Hook] Error en response:', errorMsg);
+                setError(errorMsg);
                 return null;
             }
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Error filtering clients';
+            console.error('❌ [Hook] Error en request:', errorMessage, err);
             setError(errorMessage);
             return null;
         } finally {
