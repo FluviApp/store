@@ -12,11 +12,13 @@ import useNotifications from '../../hooks/useNotifications';
 import useClients from '../../hooks/useClients';
 import useAnnouncements from '../../hooks/useAnnouncements';
 import useStoreEmails from '../../hooks/useStoreEmails';
+import useFilteredClients from '../../hooks/useFilteredClients';
 import Notifications from '../../services/Notifications';
 import Announcements from '../../services/Announcements';
 import StoreEmails from '../../services/StoreEmails';
 import Sidebar from '../../components/Sidebar';
 import BackToAjustes from '../../components/BackToAjustes.jsx';
+import ClientFiltersForm from '../../components/ClientFiltersForm.jsx';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -68,7 +70,7 @@ const Notificaciones = () => {
     const [emailSearch, setEmailSearch] = useState('');
     const [emailModalVisible, setEmailModalVisible] = useState(false);
     const [emailForm, setEmailForm] = useState({
-        recipientType: 'SINGLE', // SINGLE, MULTIPLE o ALL
+        recipientType: 'SINGLE', // SINGLE, MULTIPLE, ALL o FILTERED
         selectedClient: '',
         selectedClients: [],
         subject: '',
@@ -76,6 +78,8 @@ const Notificaciones = () => {
     });
     const [emailSubmitting, setEmailSubmitting] = useState(false);
     const [confirmSendAll, setConfirmSendAll] = useState(false);
+    const [showFiltersModal, setShowFiltersModal] = useState(false);
+    const { filteredClients } = useFilteredClients();
 
     const filteredNotifications = searchText
         ? notifications.filter(n => n.title.toLowerCase().includes(searchText.toLowerCase()))
@@ -393,6 +397,33 @@ const Notificaciones = () => {
                     refetchEmails();
                     handleCloseEmailModal();
                     setConfirmSendAll(false);
+                } else {
+                    message.error(response?.data?.message || 'No se pudieron enviar los correos');
+                }
+            } catch (err) {
+                message.error(err.message || 'Error al enviar los correos');
+            } finally {
+                setEmailSubmitting(false);
+            }
+        } else if (emailForm.recipientType === 'FILTERED') {
+            if (emailForm.selectedClients.length === 0) {
+                message.error('Debes aplicar filtros y seleccionar clientes');
+                return;
+            }
+
+            try {
+                setEmailSubmitting(true);
+                const response = await StoreEmails.sendMultiple({
+                    storeId: user.storeId,
+                    clientIds: emailForm.selectedClients,
+                    subject: emailForm.subject.trim(),
+                    message: emailForm.message.trim()
+                });
+
+                if (response?.data?.success) {
+                    message.success(`✅ ¡Correos enviados a ${response?.data?.data?.sent}/${response?.data?.data?.total} clientes!`);
+                    refetchEmails();
+                    handleCloseEmailModal();
                 } else {
                     message.error(response?.data?.message || 'No se pudieron enviar los correos');
                 }
@@ -823,6 +854,7 @@ const Notificaciones = () => {
                             >
                                 <Option value="SINGLE">👤 Enviar a un cliente específico</Option>
                                 <Option value="MULTIPLE">👥 Enviar a múltiples clientes</Option>
+                                <Option value="FILTERED">🔍 Enviar a clientes con filtros</Option>
                                 <Option value="ALL">📢 Enviar a TODOS ({allClients.length} clientes)</Option>
                             </Select>
                         </div>
@@ -869,6 +901,24 @@ const Notificaciones = () => {
                                     ))}
                                 </Select>
                                 {allClients.length === 0 && <p className="text-xs text-yellow-600 mt-1">⚠️ No hay clientes disponibles</p>}
+                            </div>
+                        )}
+
+                        {emailForm.recipientType === 'FILTERED' && (
+                            <div key="filtered-clients" className="space-y-3">
+                                <ClientFiltersForm
+                                    onClientsFound={(clients) => {
+                                        setEmailForm({ ...emailForm, selectedClients: clients.map(c => c._id) });
+                                    }}
+                                    onLoading={(loading) => setEmailSubmitting(loading)}
+                                />
+                                {emailForm.selectedClients.length > 0 && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <p className="text-sm text-green-900 font-medium">
+                                            ✅ Se enviará a <strong>{emailForm.selectedClients.length} clientes</strong>
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
