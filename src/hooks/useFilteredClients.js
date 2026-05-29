@@ -44,7 +44,7 @@ const useFilteredClients = () => {
                 params.append('maxSpent', filters.maxSpent);
             }
 
-            const response = await axios.get(`/store/clients/filter?${params.toString()}`);
+            const response = await axios.get(`/api/store/clients/filter?${params.toString()}`);
 
             if (response.data?.success) {
                 setFilteredClients(response.data.data || []);
