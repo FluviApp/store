@@ -365,12 +365,12 @@ const Notificaciones = () => {
                     message: emailForm.message.trim()
                 });
 
-                if (response?.data?.success) {
+                if (response?.success) {
                     message.success('Correo enviado exitosamente');
                     refetchEmails();
                     handleCloseEmailModal();
                 } else {
-                    message.error(response?.data?.message || 'No se pudo enviar el correo');
+                    message.error(response?.message || 'No se pudo enviar el correo');
                 }
             } catch (err) {
                 message.error(err.message || 'Error al enviar el correo');
@@ -392,13 +392,13 @@ const Notificaciones = () => {
                     message: emailForm.message.trim()
                 });
 
-                if (response?.data?.success) {
-                    message.success(`Correos enviados: ${response?.data?.data?.sent}/${response?.data?.data?.total}`);
+                if (response?.success) {
+                    message.success(`Correos enviados: ${response?.data?.sent}/${response?.data?.total}`);
                     refetchEmails();
                     handleCloseEmailModal();
                     setConfirmSendAll(false);
                 } else {
-                    message.error(response?.data?.message || 'No se pudieron enviar los correos');
+                    message.error(response?.message || 'No se pudieron enviar los correos');
                 }
             } catch (err) {
                 message.error(err.message || 'Error al enviar los correos');
@@ -420,12 +420,12 @@ const Notificaciones = () => {
                     message: emailForm.message.trim()
                 });
 
-                if (response?.data?.success) {
-                    message.success(`✅ ¡Correos enviados a ${response?.data?.data?.sent}/${response?.data?.data?.total} clientes!`);
+                if (response?.success) {
+                    message.success(`✅ ¡Correos enviados a ${response?.data?.sent}/${response?.data?.total} clientes!`);
                     refetchEmails();
                     handleCloseEmailModal();
                 } else {
-                    message.error(response?.data?.message || 'No se pudieron enviar los correos');
+                    message.error(response?.message || 'No se pudieron enviar los correos');
                 }
             } catch (err) {
                 message.error(err.message || 'Error al enviar los correos');
@@ -443,13 +443,13 @@ const Notificaciones = () => {
                     message: emailForm.message.trim()
                 });
 
-                if (response?.data?.success) {
-                    message.success(`✅ ¡Correos enviados a ${response?.data?.data?.sent}/${response?.data?.data?.total} clientes!`);
+                if (response?.success) {
+                    message.success(`✅ ¡Correos enviados a ${response?.data?.sent}/${response?.data?.total} clientes!`);
                     refetchEmails();
                     handleCloseEmailModal();
                     setConfirmSendAll(false);
                 } else {
-                    message.error(response?.data?.message || 'No se pudieron enviar los correos');
+                    message.error(response?.message || 'No se pudieron enviar los correos');
                 }
             } catch (err) {
                 message.error(err.message || 'Error al enviar los correos');
@@ -469,7 +469,7 @@ const Notificaciones = () => {
             onOk: async () => {
                 try {
                     const response = await StoreEmails.delete(item._id);
-                    if (response?.data?.success) {
+                    if (response?.success) {
                         message.success('Registro eliminado');
                         refetchEmails();
                     }
