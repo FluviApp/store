@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
-import axios from 'axios';
+import Clients from '../services/Clients';
 
 const useFilteredClients = () => {
     const { user } = useAuth();
@@ -9,10 +9,7 @@ const useFilteredClients = () => {
     const [error, setError] = useState(null);
 
     const getFilteredClients = useCallback(async (filters) => {
-        console.log('🔍 [Hook] getFilteredClients llamado con filters:', filters);
-
         if (!user?.storeId) {
-            console.error('❌ [Hook] No storeId available');
             setError('No storeId available');
             return null;
         }
@@ -21,52 +18,45 @@ const useFilteredClients = () => {
             setIsLoading(true);
             setError(null);
 
-            const params = new URLSearchParams({ storeId: user.storeId });
+            const params = { storeId: user.storeId };
 
             if (filters.zones && filters.zones.length > 0) {
-                params.append('zones', filters.zones.join(','));
+                params.zones = filters.zones.join(',');
             }
 
             if (filters.inactivityDays !== null && filters.inactivityDays !== undefined) {
-                params.append('inactivityDays', filters.inactivityDays);
+                params.inactivityDays = filters.inactivityDays;
             }
 
             if (filters.registrationDateFrom) {
-                params.append('registrationDateFrom', filters.registrationDateFrom);
+                params.registrationDateFrom = filters.registrationDateFrom;
             }
 
             if (filters.registrationDateTo) {
-                params.append('registrationDateTo', filters.registrationDateTo);
+                params.registrationDateTo = filters.registrationDateTo;
             }
 
             if (filters.minSpent !== null && filters.minSpent !== undefined) {
-                params.append('minSpent', filters.minSpent);
+                params.minSpent = filters.minSpent;
             }
 
             if (filters.maxSpent !== null && filters.maxSpent !== undefined) {
-                params.append('maxSpent', filters.maxSpent);
+                params.maxSpent = filters.maxSpent;
             }
 
-            const url = `/api/store/clients/filter?${params.toString()}`;
-            console.log('📡 [Hook] URL de request:', url);
+            // El interceptor de axios devuelve res.data directamente,
+            // así que `result` ya es { success, message, data }
+            const result = await Clients.getFiltered(params);
 
-            const response = await axios.get(url);
-            console.log('✅ [Hook] Response recibido:', response.data);
-
-            if (response.data?.success) {
-                const clientsCount = (response.data.data || []).length;
-                console.log('🎯 [Hook] Clientes encontrados:', clientsCount);
-                setFilteredClients(response.data.data || []);
-                return response.data.data || [];
+            if (result?.success) {
+                setFilteredClients(result.data || []);
+                return result.data || [];
             } else {
-                const errorMsg = response.data?.message || 'Error filtering clients';
-                console.error('❌ [Hook] Error en response:', errorMsg);
-                setError(errorMsg);
+                setError(result?.message || 'Error filtering clients');
                 return null;
             }
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Error filtering clients';
-            console.error('❌ [Hook] Error en request:', errorMessage, err);
             setError(errorMessage);
             return null;
         } finally {

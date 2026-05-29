@@ -20,16 +20,11 @@ const ClientFiltersForm = ({ onClientsFound, onLoading }) => {
     });
 
     const handleApplyFilters = async () => {
-        console.log('🔍 [Component] handleApplyFilters llamado con filters:', filters);
         if (onLoading) onLoading(true);
         const clients = await getFilteredClients(filters);
-        console.log('📊 [Component] Clientes retornados:', clients?.length || 0, clients);
         if (onLoading) onLoading(false);
         if (onClientsFound && clients) {
-            console.log('✅ [Component] Llamando onClientsFound con', clients.length, 'clientes');
             onClientsFound(clients);
-        } else {
-            console.warn('⚠️ [Component] No se llamó onClientsFound - clients:', clients);
         }
     };
 
