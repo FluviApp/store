@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
     Table, Button, Space, Input, Modal, Card, message, Empty, Row, Col, Select,
-    Tabs, DatePicker, Switch, Upload, Image, Tag
+    Tabs, DatePicker, Switch, Upload, Image, Tag, Pagination
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -65,8 +65,11 @@ const Notificaciones = () => {
     const [avisoSubmitting, setAvisoSubmitting] = useState(false);
 
     // ===== CORREOS STATE =====
-    const { data: emailsData, refetch: refetchEmails, isLoading: isLoadingEmails } = useStoreEmails(1, 10);
+    const [emailPage, setEmailPage] = useState(1);
+    const [emailPageSize, setEmailPageSize] = useState(10);
+    const { data: emailsData, refetch: refetchEmails, isLoading: isLoadingEmails } = useStoreEmails(emailPage, emailPageSize);
     const emails = emailsData?.data?.docs || [];
+    const emailsTotal = emailsData?.data?.totalDocs || 0;
     const [emailSearch, setEmailSearch] = useState('');
     const [emailModalVisible, setEmailModalVisible] = useState(false);
     const [emailForm, setEmailForm] = useState({
@@ -653,6 +656,17 @@ const Notificaciones = () => {
                                 </Space>
                             </Card>
                         ))}
+                        <Pagination
+                            className="text-center mt-2"
+                            current={emailPage}
+                            pageSize={emailPageSize}
+                            total={emailsTotal}
+                            showTotal={(total) => `${total} correos enviados`}
+                            onChange={(page, size) => {
+                                setEmailPage(page);
+                                setEmailPageSize(size);
+                            }}
+                        />
                     </div>
                 ) : <Empty description="No hay correos" />
             ) : (
@@ -661,7 +675,19 @@ const Notificaciones = () => {
                     columns={emailColumns}
                     rowKey="_id"
                     loading={isLoadingEmails}
-                    pagination={{ pageSize: 5, position: ['bottomCenter'] }}
+                    pagination={{
+                        current: emailPage,
+                        pageSize: emailPageSize,
+                        total: emailsTotal,
+                        position: ['bottomCenter'],
+                        showSizeChanger: true,
+                        pageSizeOptions: ['10', '20', '50', '100'],
+                        showTotal: (total) => `${total} correos enviados`,
+                        onChange: (page, size) => {
+                            setEmailPage(page);
+                            setEmailPageSize(size);
+                        },
+                    }}
                     bordered
                 />
             )}
