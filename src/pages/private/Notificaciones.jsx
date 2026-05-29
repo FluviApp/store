@@ -906,17 +906,35 @@ const Notificaciones = () => {
                         )}
 
                         {emailForm.recipientType === 'FILTERED' && (
-                            <div key="filtered-clients" className="space-y-3">
+                            <div key="filtered-clients" className="space-y-4">
+                                <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+                                    <p className="text-sm text-blue-900">
+                                        <strong>📋 Filtrar clientes:</strong> Usa los filtros abajo para seleccionar a qué clientes quieres enviar este correo.
+                                    </p>
+                                </div>
+
                                 <ClientFiltersForm
                                     onClientsFound={(clients) => {
                                         setEmailForm({ ...emailForm, selectedClients: clients.map(c => c._id) });
                                     }}
                                     onLoading={(loading) => setEmailSubmitting(loading)}
                                 />
+
                                 {emailForm.selectedClients.length > 0 && (
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                        <p className="text-sm text-green-900 font-medium">
-                                            ✅ Se enviará a <strong>{emailForm.selectedClients.length} clientes</strong>
+                                    <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm text-green-900 font-medium mb-1">
+                                                    ✅ Clientes seleccionados
+                                                </p>
+                                                <p className="text-2xl font-bold text-green-700">
+                                                    {emailForm.selectedClients.length} clientes
+                                                </p>
+                                            </div>
+                                            <div className="text-4xl text-green-600">📬</div>
+                                        </div>
+                                        <p className="text-xs text-green-700 mt-2">
+                                            Se enviará a todos estos clientes cuando hagas clic en "Enviar"
                                         </p>
                                     </div>
                                 )}
@@ -951,6 +969,14 @@ const Notificaciones = () => {
                                 rows={6}
                             />
                         </div>
+
+                        {emailForm.selectedClients.length > 0 && emailForm.recipientType === 'FILTERED' && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <p className="text-sm text-yellow-900 font-medium">
+                                    ⚠️ <strong>Confirmación de envío:</strong> Se enviarán <strong className="text-lg text-yellow-700">{emailForm.selectedClients.length} correos</strong> a los clientes seleccionados
+                                </p>
+                            </div>
+                        )}
 
                         {emailForm.message && (
                             <div className="border rounded-lg p-4 bg-gray-50">
