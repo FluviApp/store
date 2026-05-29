@@ -841,7 +841,8 @@ const Notificaciones = () => {
                     okText="Enviar"
                     cancelText="Cancelar"
                     title="Enviar Correo de Aviso"
-                    width={700}
+                    width={1200}
+                    style={{ maxHeight: '90vh' }}
                     confirmLoading={emailSubmitting}
                 >
                     <div className="space-y-4">

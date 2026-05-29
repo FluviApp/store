@@ -1,5 +1,5 @@
 import React from 'react';
-import { Select, Slider, DatePicker, Card, Row, Col, Button, Spin, Tag } from 'antd';
+import { Select, Slider, DatePicker, Card, Row, Col, Button, Spin, Tag, Table } from 'antd';
 import { FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import useZones from '../hooks/useZones';
@@ -129,10 +129,63 @@ const ClientFiltersForm = ({ onClientsFound, onLoading }) => {
                         </Button>
 
                         {filteredClients.length > 0 && (
-                            <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                <p className="text-green-900 font-medium">
-                                    ✅ Se encontraron <strong>{filteredClients.length}</strong> clientes que cumplen los criterios
-                                </p>
+                            <div className="mt-4">
+                                <div className="p-3 bg-green-50 rounded-lg border border-green-200 mb-4">
+                                    <p className="text-green-900 font-medium">
+                                        ✅ Se encontraron <strong>{filteredClients.length}</strong> clientes que cumplen los criterios
+                                    </p>
+                                </div>
+
+                                <div className="border rounded-lg overflow-hidden">
+                                    <Table
+                                        dataSource={filteredClients}
+                                        size="small"
+                                        pagination={{ pageSize: 10, position: ['bottomCenter'] }}
+                                        rowKey="_id"
+                                        columns={[
+                                            {
+                                                title: 'Nombre',
+                                                dataIndex: 'name',
+                                                key: 'name',
+                                                width: '25%'
+                                            },
+                                            {
+                                                title: 'Email',
+                                                dataIndex: 'email',
+                                                key: 'email',
+                                                width: '25%'
+                                            },
+                                            {
+                                                title: 'Zona',
+                                                dataIndex: 'block',
+                                                key: 'block',
+                                                width: '15%',
+                                                render: (block) => block ? <Tag color="blue">{block}</Tag> : '-'
+                                            },
+                                            {
+                                                title: 'Registrado',
+                                                dataIndex: 'createdAt',
+                                                key: 'createdAt',
+                                                width: '15%',
+                                                render: (date) => dayjs(date).format('DD/MM/YYYY')
+                                            },
+                                            {
+                                                title: 'Última Compra',
+                                                dataIndex: 'lastOrderDate',
+                                                key: 'lastOrderDate',
+                                                width: '12%',
+                                                render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : 'Nunca'
+                                            },
+                                            {
+                                                title: 'Gasto Total',
+                                                dataIndex: 'totalSpent',
+                                                key: 'totalSpent',
+                                                width: '12%',
+                                                render: (amount) => `$${(amount || 0).toLocaleString('es-CO')}`
+                                            }
+                                        ]}
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
