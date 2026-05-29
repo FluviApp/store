@@ -1,5 +1,5 @@
 import React from 'react';
-import { Select, Slider, DatePicker, Card, Row, Col, Button, Spin, Tag, Table } from 'antd';
+import { Select, Slider, DatePicker, Card, Row, Col, Button, Spin, Tag, Table, Switch } from 'antd';
 import { FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import useZones from '../hooks/useZones';
@@ -16,7 +16,8 @@ const ClientFiltersForm = ({ onClientsFound, onLoading }) => {
         registrationDateFrom: null,
         registrationDateTo: null,
         minSpent: null,
-        maxSpent: null
+        maxSpent: null,
+        neverPurchased: false
     });
 
     const handleApplyFilters = async () => {
@@ -50,20 +51,42 @@ const ClientFiltersForm = ({ onClientsFound, onLoading }) => {
                         </Select>
                     </div>
 
+                    {/* Solo clientes que nunca han comprado */}
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                        <div>
+                            <label className="block text-sm font-medium">Solo clientes que nunca han comprado</label>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Clientes registrados que jamás hicieron un pedido
+                            </p>
+                        </div>
+                        <Switch
+                            checked={filters.neverPurchased}
+                            onChange={(checked) => setFilters({
+                                ...filters,
+                                neverPurchased: checked,
+                                inactivityDays: checked ? null : filters.inactivityDays
+                            })}
+                        />
+                    </div>
+
                     {/* Inactividad */}
-                    <div>
+                    <div className={filters.neverPurchased ? 'opacity-40 pointer-events-none' : ''}>
                         <label className="block text-sm font-medium mb-2">
-                            Clientes sin compra hace mínimo:
+                            Clientes con compras pero inactivos hace mínimo:
                             {filters.inactivityDays && <Tag color="blue" className="ml-2">{filters.inactivityDays} días</Tag>}
                         </label>
                         <Slider
                             min={0}
                             max={365}
                             step={1}
+                            disabled={filters.neverPurchased}
                             value={filters.inactivityDays || 0}
                             onChange={(value) => setFilters({ ...filters, inactivityDays: value > 0 ? value : null })}
                             marks={{ 0: '0 días', 30: '1 mes', 90: '3 meses', 180: '6 meses', 365: '1 año' }}
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Solo incluye clientes que ya compraron antes pero no recientemente.
+                        </p>
                     </div>
 
                     {/* Fecha de Registro */}
@@ -144,10 +167,11 @@ const ClientFiltersForm = ({ onClientsFound, onLoading }) => {
                                         rowKey="_id"
                                         columns={[
                                             {
-                                                title: 'Nombre',
-                                                dataIndex: 'name',
-                                                key: 'name',
-                                                width: '25%'
+                                                title: 'Dirección',
+                                                dataIndex: 'address',
+                                                key: 'address',
+                                                width: '25%',
+                                                render: (address) => address || '-'
                                             },
                                             {
                                                 title: 'Email',

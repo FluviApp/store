@@ -44,6 +44,10 @@ const useFilteredClients = () => {
                 params.maxSpent = filters.maxSpent;
             }
 
+            if (filters.neverPurchased) {
+                params.neverPurchased = true;
+            }
+
             // El interceptor de axios devuelve res.data directamente,
             // así que `result` ya es { success, message, data }
             const result = await Clients.getFiltered(params);
