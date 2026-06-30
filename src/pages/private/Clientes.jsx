@@ -27,7 +27,7 @@ const Clientes = () => {
     const [autocompleteRef, setAutocompleteRef] = useState(null);
     const [isMayorista, setIsMayorista] = useState(false);
 
-    const { data, isLoading, refetch } = useClients({ page: 1, limit: 100 });
+    const { data, isLoading, refetch } = useClients({ page: 1, limit: 5000 });
     const clients = data?.data?.docs || [];
     const pageSize = 5;
     const isMobile = useMediaQuery({ maxWidth: 768 });
