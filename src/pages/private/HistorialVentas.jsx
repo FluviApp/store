@@ -63,6 +63,7 @@ const HistorialVentas = () => {
         status: null,
         transferPay: undefined,
         deliveryType: undefined,
+        search: null,
         page: 1,
         limit: 10,
     });
@@ -127,16 +128,9 @@ const HistorialVentas = () => {
     const ventas = data?.data?.docs || [];
     const total = data?.data?.totalDocs ?? data?.data?.total ?? 0;
 
-    const filteredVentas = searchText
-        ? ventas.filter(p => {
-            // Si es pedido local, incluirlo siempre (no tiene cliente)
-            if (p.deliveryType === 'local') return true;
-            // Para otros pedidos, filtrar por teléfono o dirección
-            const searchLower = searchText.toLowerCase();
-            return p.customer?.phone?.toLowerCase().includes(searchLower) ||
-                p.customer?.address?.toLowerCase().includes(searchLower);
-        })
-        : ventas;
+    // La búsqueda ahora se hace en el servidor (por nombre, teléfono, dirección o email),
+    // sobre TODO el historial y no solo la página actual.
+    const filteredVentas = ventas;
 
 
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -654,11 +648,15 @@ const HistorialVentas = () => {
                 </div>
 
                 <Search
-                    placeholder="Buscar por teléfono o dirección"
+                    placeholder="Buscar por nombre, teléfono o dirección"
                     allowClear
                     enterButton={<SearchOutlined />}
                     size="large"
-                    onSearch={setSearchText}
+                    onSearch={(val) => {
+                        setSearchText(val);
+                        setQueryParams(prev => ({ ...prev, search: val || null, page: 1 }));
+                        setPage(1);
+                    }}
                     className="mb-6"
                 />
 
