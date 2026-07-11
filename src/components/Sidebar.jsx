@@ -154,7 +154,7 @@ const Sidebar = () => {
 
             {/* Sidebar móvil */}
             <div
-                className={`fixed top-0 left-0 h-full w-64 bg-white z-40 transition-transform duration-300 shadow-lg ${collapsed ? '-translate-x-full' : 'translate-x-0'
+                className={`fluvi-sidebar fixed top-0 left-0 h-full w-64 z-40 transition-transform duration-300 shadow-lg ${collapsed ? '-translate-x-full' : 'translate-x-0'
                     } lg:hidden`}
             >
                 {renderBrand('p-6')}
@@ -171,13 +171,13 @@ const Sidebar = () => {
             </div>
 
             {/* Sidebar de escritorio: contenedor sticky para que no se mueva al hacer scroll */}
-            <div className="hidden lg:block sticky top-0 z-20 h-screen max-h-screen w-[250px] shrink-0 self-start overflow-y-auto border-r border-gray-200 bg-white">
+            <div className="fluvi-sidebar fluvi-sidebar--float hidden lg:block sticky top-0 z-20 h-[calc(100vh-24px)] w-[250px] shrink-0 self-start overflow-y-auto">
                 <Sider
                     theme="light"
                     breakpoint="lg"
                     collapsedWidth="0"
                     width={250}
-                    className="min-h-full !bg-white border-0"
+                    className="min-h-full !bg-transparent border-0"
                 >
                     {renderBrand('p-6')}
                     <Menu mode="inline" selectedKeys={getSelectedKey()}>

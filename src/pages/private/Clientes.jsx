@@ -215,9 +215,9 @@ const Clientes = () => {
     }, [selectedLat, selectedLng])
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen fluvi-page">
             <Sidebar />
-            <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
+            <div className="fv-glass-cards flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-gray-800">Clientes</h1>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleAgregar}>
@@ -259,14 +259,15 @@ const Clientes = () => {
                             </div>
                         )
                     ) : (
-                        <Table
-                            dataSource={filteredClients}
-                            columns={columns}
-                            loading={isLoading}
-                            pagination={{ pageSize }}
-                            bordered
-                            rowKey="_id"
-                        />
+                        <div className="glass-card fv-glass-table" style={{ padding: 8 }}>
+                            <Table
+                                dataSource={filteredClients}
+                                columns={columns}
+                                loading={isLoading}
+                                pagination={{ pageSize }}
+                                rowKey="_id"
+                            />
+                        </div>
                     )}
                 </div>
 

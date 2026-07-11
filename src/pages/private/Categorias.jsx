@@ -730,9 +730,9 @@ const Categorias = () => {
 
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen fluvi-page">
             <Sidebar />
-            <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
+            <div className="fv-glass-cards flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
                 <div className="mb-6">
                     <Row gutter={[16, 16]}>
                         <Col span={24} className="flex items-center justify-between">
@@ -808,14 +808,15 @@ const Categorias = () => {
                             </div>
                         )
                     ) : (
-                        <Table
-                            dataSource={filteredData}
-                            columns={columns}
-                            rowKey="_id"
-                            loading={isLoading}
-                            pagination={{ pageSize, position: ['bottomCenter'] }}
-                            bordered
-                        />
+                        <div className="glass-card fv-glass-table" style={{ padding: 8 }}>
+                            <Table
+                                dataSource={filteredData}
+                                columns={columns}
+                                rowKey="_id"
+                                loading={isLoading}
+                                pagination={{ pageSize, position: ['bottomCenter'] }}
+                            />
+                        </div>
                     )}
                 </div>
 

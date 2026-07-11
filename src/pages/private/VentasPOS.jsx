@@ -304,7 +304,7 @@ const VentasPOS = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-white">
+        <div className="flex min-h-screen fluvi-page">
             <Sidebar />
             <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
 
@@ -355,8 +355,8 @@ const VentasPOS = () => {
                         <Empty description="Sin productos para mostrar" />
                     )}
                         <div className={gridDensity === 'compact'
-                            ? 'grid grid-cols-2 lg:grid-cols-4 gap-3'
-                            : 'grid grid-cols-2 md:grid-cols-3 gap-4'}>
+                            ? 'fv-glass-cards grid grid-cols-2 lg:grid-cols-4 gap-3'
+                            : 'fv-glass-cards grid grid-cols-2 md:grid-cols-3 gap-4'}>
                             {filteredProducts.map(p => (
                             <Card
                                 key={p._id}
@@ -411,7 +411,7 @@ const VentasPOS = () => {
                             <Option value="price_desc">Precio ↓</Option>
                         </Select>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="fv-glass-cards grid grid-cols-2 gap-4">
                         {filteredProducts.map(p => (
                             <Card
                                 key={p._id}
@@ -435,7 +435,7 @@ const VentasPOS = () => {
 
 
                 {/* Panel derecho: carrito */}
-                <div className="flex-1 bg-white/70 backdrop-blur-md flex flex-col justify-between h-screen relative overflow-y-auto border-l border-gray-100">
+                <div className="flex-1 fluvi-surface flex flex-col justify-between h-screen relative overflow-y-auto border-l border-white/40">
                     <div className="p-6 overflow-y-auto pb-40">
                         <div className="mb-5">
                             <div className="flex items-center gap-3">
@@ -589,7 +589,7 @@ const VentasPOS = () => {
                         </div>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 w-full p-5 bg-white/80 backdrop-blur border-t border-gray-200">
+                    <div className="absolute bottom-0 left-0 w-full p-5 fluvi-surface--bar">
                         <div className="flex items-center justify-between mb-3">
                             <div className="text-gray-500">Total</div>
                             <div className="text-3xl font-extrabold tracking-tight text-slate-900">${total.toFixed(0)}</div>

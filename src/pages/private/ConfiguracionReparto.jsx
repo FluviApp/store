@@ -18,7 +18,7 @@ const ConfiguracionReparto = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen fluvi-page">
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-10 lg:px-10 pb-10 overflow-x-auto">
                 <BackToAjustes />

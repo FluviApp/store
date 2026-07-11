@@ -139,7 +139,7 @@ const Repartidores = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen fluvi-page">
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
                 <BackToAjustes />

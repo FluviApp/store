@@ -567,12 +567,15 @@ const Pedidos = () => {
     );
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen fluvi-page">
             <Sidebar />
-            <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto flex flex-col">
+            <div className="fv-glass-cards flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto flex flex-col">
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h1 className="text-3xl font-bold m-0">Pedidos</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-3xl font-bold m-0 fluvi-title">Pedidos</h1>
+                            <span className="fluvi-pill">{filteredPedidos.length} en vista</span>
+                        </div>
                         <Button type="primary" icon={<PlusOutlined />} onClick={handleAgregar}>Agregar Pedido</Button>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -662,7 +665,7 @@ const Pedidos = () => {
                             </div>
                         </div>
                         <div className="w-full lg:w-[min(42%,520px)] lg:shrink-0 lg:sticky lg:top-4 lg:self-start">
-                            <div className="h-[min(72vh,620px)] min-h-[280px] w-full rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
+                            <div className="glass-card h-[min(72vh,620px)] min-h-[280px] w-full overflow-hidden">
                                 <OrdersMap
                                     locations={filteredPedidos.map(pedido => ({
                                         lat: pedido.customer.lat,
