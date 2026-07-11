@@ -1,6 +1,6 @@
 import React from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
-import { Card, Row, Col } from 'antd';
+import { Card, Row, Col, message } from 'antd';
 import {
     SettingOutlined,
     CarOutlined,
@@ -11,8 +11,21 @@ import {
     CalendarOutlined,
     BellOutlined,
     RightOutlined,
+    ThunderboltFilled,
+    ShareAltOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+
+// ⚠️ Dominio público donde está desplegado el ecommerce (pedido rápido).
+// Cámbialo por tu dominio real (ej: https://fluvi.cl o el de Render).
+const QUICK_ORDER_BASE = 'https://fluvi.cl';
+
+// Slugs bonitos por tienda (opcional). Si no hay, se usa /pedido/<storeId>.
+const STORE_SLUGS = {
+    '686475c9b8bfd36c37a820c3': 'fluvi',
+    '68697bf9c8e5172fd536738f': 'aguas-ancud',
+};
 
 const items = [
     {
@@ -67,6 +80,29 @@ const items = [
 ];
 
 const Ajustes = () => {
+    const { user } = useAuth();
+    const [hover, setHover] = React.useState(false);
+
+    const quickOrderUrl = () => {
+        const slug = STORE_SLUGS[user?.storeId];
+        return slug ? `${QUICK_ORDER_BASE}/${slug}` : `${QUICK_ORDER_BASE}/pedido/${user?.storeId || ''}`;
+    };
+
+    const handleShareQuickOrder = async () => {
+        const url = quickOrderUrl();
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: 'Pide tu agua', text: 'Haz tu pedido rápido aquí 💧', url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                message.success('¡URL copiada! Ya puedes compartirla 💧');
+            }
+        } catch (err) {
+            try { await navigator.clipboard.writeText(url); message.success('¡URL copiada! 💧'); }
+            catch { message.info(url); }
+        }
+    };
+
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
@@ -78,6 +114,49 @@ const Ajustes = () => {
                 <p className="text-gray-600 mb-8">
                     Configura todo lo relacionado a tu tienda.
                 </p>
+
+                {/* Botón glassmorphism: compartir URL de pedido rápido */}
+                <button
+                    onClick={handleShareQuickOrder}
+                    onMouseEnter={() => setHover(true)}
+                    onMouseLeave={() => setHover(false)}
+                    style={{
+                        width: '100%',
+                        cursor: 'pointer',
+                        borderRadius: 24,
+                        padding: '26px 30px',
+                        marginBottom: 32,
+                        color: '#fff',
+                        textAlign: 'left',
+                        border: '1px solid rgba(255,255,255,0.4)',
+                        background: 'linear-gradient(135deg, rgba(30,144,255,0.95) 0%, rgba(13,110,226,0.92) 60%, rgba(56,164,255,0.95) 100%)',
+                        backdropFilter: 'blur(14px)',
+                        WebkitBackdropFilter: 'blur(14px)',
+                        boxShadow: hover ? '0 24px 60px rgba(30,144,255,0.55)' : '0 16px 44px rgba(30,144,255,0.4)',
+                        transform: hover ? 'translateY(-3px)' : 'none',
+                        transition: 'transform .18s ease, box-shadow .18s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 20,
+                        position: 'relative',
+                        overflow: 'hidden',
+                    }}
+                >
+                    {/* brillo decorativo */}
+                    <span style={{ position: 'absolute', top: -40, right: -20, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.45), rgba(255,255,255,0))', pointerEvents: 'none' }} />
+                    <span style={{ width: 62, height: 62, borderRadius: 18, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ThunderboltFilled style={{ fontSize: 30, color: '#fff' }} />
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
+                            Compartir URL de pedido rápido
+                        </span>
+                        <span style={{ display: 'block', fontSize: 14, opacity: 0.92, fontWeight: 500 }}>
+                            Comparte el link por WhatsApp o redes y recibe pedidos en segundos 💧
+                        </span>
+                    </span>
+                    <ShareAltOutlined style={{ fontSize: 26, color: '#fff', flexShrink: 0 }} />
+                </button>
 
                 <Row gutter={[20, 20]}>
                     {items.map((item) => (
