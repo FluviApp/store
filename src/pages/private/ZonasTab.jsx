@@ -6,10 +6,13 @@ import { GoogleMap, DrawingManager, Polygon, useJsApiLoader } from '@react-googl
 import { useAuth } from '../../context/AuthContext.jsx';
 import useZones from '../../hooks/useZones.js';
 import Zones from '../../services/Zones.js';
+import Comunas from '../../services/Comunas.js';
 import HorarioGridForm from '../../components/HorarioGridForm';
 import useAllDealers from '../../hooks/useAllDealers';
 
 const { Search } = Input;
+// Respaldo si el catálogo del backend no carga. Lo normal es que el Select
+// se llene desde /store/comunas (todas las comunas con límite guardado).
 const comunasDeChile = [
     'Santiago', 'Ñuñoa', 'Providencia', 'La Florida', 'Puente Alto', 'Maipú',
 ];
@@ -22,6 +25,16 @@ const ZonasTab = () => {
     const [searchText, setSearchText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [tipoZona, setTipoZona] = useState('comuna');
+    const [comunasCatalogo, setComunasCatalogo] = useState([]);
+
+    // Cargar catálogo de comunas (las que tienen límite guardado en el backend)
+    useEffect(() => {
+        let mounted = true;
+        Comunas.getAll()
+            .then((res) => { if (mounted) setComunasCatalogo(res?.data?.data || []); })
+            .catch(() => { /* si falla, se usa la lista local de respaldo */ });
+        return () => { mounted = false; };
+    }, []);
     const [newPolygonCoords, setNewPolygonCoords] = useState([]);
     const [editPolygonCoords, setEditPolygonCoords] = useState([]);
     const [drawingEnabled, setDrawingEnabled] = useState(false);
@@ -521,7 +534,7 @@ const ZonasTab = () => {
                         {tipoZona === 'comuna' && (
                             <Form.Item name="comuna" label="Comuna" rules={[{ required: true, message: 'Selecciona una comuna' }]}>
                                 <Select showSearch placeholder="Selecciona una comuna">
-                                    {comunasDeChile.map((comuna) => (
+                                    {(comunasCatalogo.length ? comunasCatalogo.map((c) => c.name) : comunasDeChile).map((comuna) => (
                                         <Select.Option key={comuna} value={comuna}>{comuna}</Select.Option>
                                     ))}
                                 </Select>
