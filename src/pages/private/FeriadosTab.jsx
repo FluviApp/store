@@ -2,7 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Switch, Button, message, Spin, DatePicker, Tag, Alert, Empty } from 'antd';
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { useAuth } from '../../context/AuthContext.jsx';
+
+dayjs.extend(utc);
 import useDeliveryConfig from '../../hooks/useDeliveryConfig.js';
 import DeliveryConfig from '../../services/DeliveryConfig.js';
 
@@ -20,7 +23,7 @@ const FeriadosTab = () => {
         if (!data) return;
         setDeliverOnHolidays(data.deliverOnHolidays !== false);
         const dates = (data.blockedDates || [])
-            .map((d) => dayjs(d).startOf('day'))
+            .map((d) => dayjs.utc(d).startOf('day'))
             .filter((d) => d.isValid());
         setBlockedDates(dates.sort((a, b) => a.valueOf() - b.valueOf()));
     }, [config]);
@@ -32,12 +35,14 @@ const FeriadosTab = () => {
 
     const handleAddDate = () => {
         if (!datePickerValue) return;
-        const iso = datePickerValue.startOf('day').format('YYYY-MM-DD');
+        // Tomamos la fecha calendario que el usuario ve (local) y la guardamos como
+        // medianoche UTC de ESE mismo día → independiente de zona horaria.
+        const iso = datePickerValue.format('YYYY-MM-DD');
         if (blockedDatesIsoSet.has(iso)) {
             message.info('Esa fecha ya está bloqueada');
             return;
         }
-        const next = [...blockedDates, datePickerValue.startOf('day')].sort((a, b) => a.valueOf() - b.valueOf());
+        const next = [...blockedDates, dayjs.utc(iso)].sort((a, b) => a.valueOf() - b.valueOf());
         setBlockedDates(next);
         setDatePickerValue(null);
     };
@@ -52,7 +57,7 @@ const FeriadosTab = () => {
             const payload = {
                 storeId: user?.storeId,
                 deliverOnHolidays,
-                blockedDates: blockedDates.map((d) => d.toISOString()),
+                blockedDates: blockedDates.map((d) => d.format('YYYY-MM-DD')),
             };
             const response = await DeliveryConfig.update(payload);
             if (response?.success) {
