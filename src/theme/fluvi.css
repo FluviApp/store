@@ -151,7 +151,7 @@
   height: 46px; line-height: 46px;
   transition: background .18s ease, transform .12s ease;
 }
-.fluvi-sidebar .ant-menu-item:hover { background: rgba(30, 144, 255, 0.1) !important; }
+.fluvi-sidebar .ant-menu-item:not(.ant-menu-item-selected):hover { background: rgba(30, 144, 255, 0.1) !important; }
 .fluvi-sidebar .ant-menu-item::after { display: none !important; } /* quita la barra lateral de Ant */
 /* Ítem seleccionado: pill azul degradado con texto blanco */
 .fluvi-sidebar .ant-menu-item-selected {
@@ -161,3 +161,12 @@
 .fluvi-sidebar .ant-menu-item-selected a,
 .fluvi-sidebar .ant-menu-item-selected span,
 .fluvi-sidebar .ant-menu-item-selected .anticon { color: #fff !important; }
+/* Hover sobre el ítem YA seleccionado: mantener el degradado azul (antes el hover genérico
+   lavaba el fondo y el texto blanco quedaba invisible). Se oscurece un pelo como feedback. */
+.fluvi-sidebar .ant-menu-item-selected:hover {
+  background: linear-gradient(135deg, #1a86f5, #0a6fd6) !important;
+  box-shadow: 0 10px 22px rgba(30, 144, 255, 0.5);
+}
+.fluvi-sidebar .ant-menu-item-selected:hover a,
+.fluvi-sidebar .ant-menu-item-selected:hover span,
+.fluvi-sidebar .ant-menu-item-selected:hover .anticon { color: #fff !important; }
