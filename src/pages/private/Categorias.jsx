@@ -81,7 +81,8 @@ const Categorias = () => {
 
     const [isEditCategoryModalVisible, setIsEditCategoryModalVisible] = useState(false); // para mostrar el modal de edición
     const [formCategory] = Form.useForm(); // formulario compartido para crear/editar
-    const [imageFile, setImageFile] = useState(null); // imagen actual de la categoría
+    const [imageFile, setImageFile] = useState(null); // imagen CUADRADA (app vieja)
+    const [imageWideFile, setImageWideFile] = useState(null); // imagen RECTANGULAR 2:1 (app nueva, opcional)
 
     const [removedImages, setRemovedImages] = useState([]);
     const [removedVariantImages, setRemovedVariantImages] = useState({});
@@ -136,12 +137,49 @@ const Categorias = () => {
             reader.readAsDataURL(file);
         });
     };
+    // Categorías: imagen RECTANGULAR ~2:1 (el ecommerce muestra la tarjeta en 2:1).
+    // Recomendado 800×400. Los productos siguen cuadrados (validateImageDimensions 400×400).
+    const validateCategoryImageDimensions = async (file) => {
+        return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const ratio = img.height ? img.width / img.height : 0;
+                    if (img.width >= 600 && ratio >= 1.6 && ratio <= 2.4) {
+                        resolve(true);
+                    } else {
+                        message.error(`La imagen "${file.name}" debe ser rectangular horizontal (~2:1, recomendado 800×400)`);
+                        resolve(false);
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+    // Imagen CUADRADA (400×400): la usa la app vieja. Obligatoria.
     const validateCategoryImageSize = async (file) => {
         const isValid = await validateImageDimensions(file);
         if (!isValid) return Upload.LIST_IGNORE;
 
         setImageFile({
             uid: file.uid || '-1',
+            name: file.name,
+            status: 'done',
+            url: URL.createObjectURL(file),
+            originFileObj: file
+        });
+
+        return false;
+    };
+    // Imagen RECTANGULAR (2:1, recomendado 800×400): la usa la app nueva. Opcional.
+    const validateCategoryWideImageSize = async (file) => {
+        const isValid = await validateCategoryImageDimensions(file);
+        if (!isValid) return Upload.LIST_IGNORE;
+
+        setImageWideFile({
+            uid: file.uid || '-1w',
             name: file.name,
             status: 'done',
             url: URL.createObjectURL(file),
@@ -183,6 +221,7 @@ const Categorias = () => {
     const openCreateCategoryModal = () => {
         formCategory.resetFields();
         setImageFile(null);
+        setImageWideFile(null);
         setEditingItem(null);
         setIsCategoryModalVisible(true);
     };
@@ -190,7 +229,7 @@ const Categorias = () => {
         const values = await formCategory.validateFields();
 
         if (!imageFile?.originFileObj) {
-            message.error('La imagen de la categoría es obligatoria');
+            message.error('La imagen cuadrada de la categoría es obligatoria');
             return;
         }
 
@@ -198,6 +237,9 @@ const Categorias = () => {
         formData.append('name', values.nombre);
         formData.append('storeId', user.storeId);
         formData.append('image', imageFile.originFileObj);
+        if (imageWideFile?.originFileObj) {
+            formData.append('imageWide', imageWideFile.originFileObj);
+        }
 
         try {
             const response = await Categories.create(formData);
@@ -208,6 +250,7 @@ const Categorias = () => {
                 setIsCategoryModalVisible(false);
                 formCategory.resetFields();
                 setImageFile(null);
+                setImageWideFile(null);
                 setEditingItem(null);
             } else {
                 message.warning(response?.message || 'No se pudo crear la categoría');
@@ -220,6 +263,7 @@ const Categorias = () => {
         setIsCategoryModalVisible(false);
         formCategory.resetFields();
         setImageFile(null);
+        setImageWideFile(null);
         setEditingItem(null);
     };
 
@@ -238,7 +282,17 @@ const Categorias = () => {
             }
             : null;
 
+        const imageWideObj = category.imageWide
+            ? {
+                uid: `existing-wide-${category._id}`,
+                name: category.imageWide.split('/').pop(),
+                status: 'done',
+                url: category.imageWide,
+            }
+            : null;
+
         setImageFile(imageObj);
+        setImageWideFile(imageWideObj);
         setEditingItem(category);
         setIsEditCategoryModalVisible(true);
     };
@@ -252,6 +306,9 @@ const Categorias = () => {
         if (imageFile?.originFileObj) {
             formData.append('image', imageFile.originFileObj);
         }
+        if (imageWideFile?.originFileObj) {
+            formData.append('imageWide', imageWideFile.originFileObj);
+        }
 
         try {
             const response = await Categories.edit(editingItem._id, formData);
@@ -262,6 +319,7 @@ const Categorias = () => {
                 setIsEditCategoryModalVisible(false);
                 formCategory.resetFields();
                 setImageFile(null);
+                setImageWideFile(null);
                 setEditingItem(null);
             } else {
                 message.warning(response?.message || 'Failed to update category');
@@ -274,6 +332,7 @@ const Categorias = () => {
         setIsEditCategoryModalVisible(false);
         formCategory.resetFields();
         setImageFile(null);
+        setImageWideFile(null);
         setEditingItem(null);
     };
 
@@ -828,6 +887,9 @@ const Categorias = () => {
                     imageFile={imageFile}
                     setImageFile={setImageFile}
                     validateImage={validateCategoryImageSize}
+                    imageWideFile={imageWideFile}
+                    setImageWideFile={setImageWideFile}
+                    validateWideImage={validateCategoryWideImageSize}
                 />
 
 
@@ -839,6 +901,9 @@ const Categorias = () => {
                     imageFile={imageFile}
                     setImageFile={setImageFile}
                     validateImage={validateCategoryImageSize}
+                    imageWideFile={imageWideFile}
+                    setImageWideFile={setImageWideFile}
+                    validateWideImage={validateCategoryWideImageSize}
                 />
 
                 <ModalCreateProduct

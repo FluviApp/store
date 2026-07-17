@@ -1,7 +1,17 @@
 
 import React from 'react';
-import { Modal, Form, Input, Upload, Button, message } from 'antd';
+import { Modal, Form, Input, Upload, Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+
+const buildFileList = (file) =>
+    file
+        ? [{
+            uid: file.uid || '-1',
+            name: file.name || 'imagen.png',
+            status: 'done',
+            url: file.url || (file.originFileObj ? URL.createObjectURL(file.originFileObj) : undefined),
+        }]
+        : [];
 
 const ModalCreateCategory = ({
     visible,
@@ -11,6 +21,9 @@ const ModalCreateCategory = ({
     imageFile,
     setImageFile,
     validateImage,
+    imageWideFile,
+    setImageWideFile,
+    validateWideImage,
 }) => {
     return (
         <Modal
@@ -31,26 +44,37 @@ const ModalCreateCategory = ({
                     <Input placeholder="Nombre de la categoría" />
                 </Form.Item>
 
-                <Form.Item label="Imagen (400x400)">
+                <Form.Item
+                    label="Imagen cuadrada (400×400) — obligatoria"
+                    extra="La usa la app actual."
+                >
                     <Upload
                         maxCount={1}
                         listType="picture"
                         beforeUpload={validateImage}
                         showUploadList={{ showRemoveIcon: true }}
-                        fileList={
-                            imageFile
-                                ? [{
-                                    uid: imageFile.uid || '-1',
-                                    name: imageFile.name || 'imagen.png',
-                                    status: 'done',
-                                    url: imageFile.url || (imageFile.originFileObj ? URL.createObjectURL(imageFile.originFileObj) : undefined),
-                                }]
-                                : []
-                        }
+                        fileList={buildFileList(imageFile)}
                         onRemove={() => setImageFile(null)}
                         customRequest={({ onSuccess }) => setTimeout(() => onSuccess("ok"), 0)}
                     >
-                        <Button icon={<UploadOutlined />}>Seleccionar imagen</Button>
+                        <Button icon={<UploadOutlined />}>Seleccionar imagen cuadrada</Button>
+                    </Upload>
+                </Form.Item>
+
+                <Form.Item
+                    label="Imagen rectangular 2:1 (800×400) — opcional"
+                    extra="La usa la app nueva. Si no la subes, se usa la cuadrada."
+                >
+                    <Upload
+                        maxCount={1}
+                        listType="picture"
+                        beforeUpload={validateWideImage}
+                        showUploadList={{ showRemoveIcon: true }}
+                        fileList={buildFileList(imageWideFile)}
+                        onRemove={() => setImageWideFile(null)}
+                        customRequest={({ onSuccess }) => setTimeout(() => onSuccess("ok"), 0)}
+                    >
+                        <Button icon={<UploadOutlined />}>Seleccionar imagen rectangular</Button>
                     </Upload>
                 </Form.Item>
             </Form>

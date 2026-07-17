@@ -1,7 +1,17 @@
 // components/modals/ModalEditCategoria.jsx
 import React from 'react';
-import { Modal, Form, Input, Upload, Button, message } from 'antd';
+import { Modal, Form, Input, Upload, Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+
+const buildFileList = (file) =>
+    file
+        ? [{
+            uid: file.uid || '-1',
+            name: file.name || 'image.png',
+            status: 'done',
+            url: file.url || (file.originFileObj ? URL.createObjectURL(file.originFileObj) : undefined),
+        }]
+        : [];
 
 const ModalEditCategory = ({
     visible,
@@ -11,84 +21,62 @@ const ModalEditCategory = ({
     imageFile,
     setImageFile,
     validateImage,
+    imageWideFile,
+    setImageWideFile,
+    validateWideImage,
 }) => {
     return (
         <Modal
-            title="Edit Category"
+            title="Editar categoría"
             open={visible}
             onCancel={onCancel}
             onOk={onEdit}
-            okText="Save"
-            cancelText="Cancel"
+            okText="Guardar"
+            cancelText="Cancelar"
             width={600}
         >
             <Form form={form} layout="vertical">
                 <Form.Item
                     name="nombre"
-                    label="Name"
-                    rules={[{ required: true, message: 'Name is required' }]}
+                    label="Nombre"
+                    rules={[{ required: true, message: 'El nombre es obligatorio' }]}
                 >
-                    <Input placeholder="Category name" />
+                    <Input placeholder="Nombre de la categoría" />
                 </Form.Item>
 
-                <Form.Item label="Imagen (400x400)">
+                <Form.Item
+                    label="Imagen cuadrada (400×400)"
+                    extra="La usa la app actual. Selecciona una nueva para reemplazarla."
+                >
                     <Upload
                         maxCount={1}
                         listType="picture"
                         beforeUpload={validateImage}
-                        showUploadList={{ showRemoveIcon: false }} // 👈🏻 ocultar ícono de eliminar
-                        fileList={
-                            imageFile
-                                ? [{
-                                    uid: imageFile.uid || '-1',
-                                    name: imageFile.name || 'image.png',
-                                    status: 'done',
-                                    url: imageFile.url || (imageFile.originFileObj ? URL.createObjectURL(imageFile.originFileObj) : undefined),
-                                }]
-                                : []
-                        }
+                        showUploadList={{ showRemoveIcon: true }}
+                        fileList={buildFileList(imageFile)}
+                        onRemove={() => setImageFile(null)}
                         customRequest={({ onSuccess }) => setTimeout(() => onSuccess("ok"), 0)}
-                        itemRender={(originNode, file) => {
-                            return (
-                                <div style={{ position: 'relative', display: 'inline-block', marginRight: 8 }}>
-                                    {originNode}
-                                    <div style={{ position: 'absolute', top: 4, right: 4 }}>
-                                        <Button
-                                            size="small"
-                                            onClick={() => document.getElementById('replace-category-image')?.click()}
-                                        >
-                                            Reemplazar
-                                        </Button>
-                                    </div>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        id="replace-category-image"
-                                        style={{ display: 'none' }}
-                                        onChange={async (e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
-
-                                            const isValid = await validateImage(file);
-                                            if (isValid === false) return;
-
-                                            setImageFile({
-                                                uid: file.uid || '-1',
-                                                name: file.name,
-                                                status: 'done',
-                                                url: URL.createObjectURL(file),
-                                                originFileObj: file,
-                                            });
-                                        }}
-                                    />
-                                </div>
-                            );
-                        }}
                     >
+                        <Button icon={<UploadOutlined />}>Seleccionar imagen cuadrada</Button>
                     </Upload>
-
                 </Form.Item>
 
+                <Form.Item
+                    label="Imagen rectangular 2:1 (800×400) — opcional"
+                    extra="La usa la app nueva. Si no la subes, se usa la cuadrada."
+                >
+                    <Upload
+                        maxCount={1}
+                        listType="picture"
+                        beforeUpload={validateWideImage}
+                        showUploadList={{ showRemoveIcon: true }}
+                        fileList={buildFileList(imageWideFile)}
+                        onRemove={() => setImageWideFile(null)}
+                        customRequest={({ onSuccess }) => setTimeout(() => onSuccess("ok"), 0)}
+                    >
+                        <Button icon={<UploadOutlined />}>Seleccionar imagen rectangular</Button>
+                    </Upload>
+                </Form.Item>
             </Form>
         </Modal>
     );
