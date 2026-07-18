@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    Table, Button, Space, Input, Modal, Card, message, Empty, Row, Col, Upload, Form
+    Table, Button, Space, Input, Modal, Card, message, Empty, Row, Col, Upload, Form, Select, Radio
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,10 @@ import { useMediaQuery } from 'react-responsive';
 import { useAuth } from '../../context/AuthContext';
 import useBanners from '../../hooks/useBanners';
 import Banners from '../../services/Banners';
+import useHero from '../../hooks/useHero';
+import Hero from '../../services/Hero';
+import useProductsForSelect from '../../hooks/useProductsForSelect';
+import usePacks from '../../hooks/usePacks';
 import Sidebar from '../../components/Sidebar';
 import BackToAjustes from '../../components/BackToAjustes.jsx';
 import ModalCreateBanner from '../../components/ModalCreateBanner';
@@ -30,6 +34,44 @@ const BannersPage = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [form] = Form.useForm();
+
+    // ── Portada / Hero ──────────────────────────────────────────────
+    const [heroForm] = Form.useForm();
+    const { data: heroData, refetch: refetchHero } = useHero();
+    const { data: productsForSelect } = useProductsForSelect({ storeId: user?.storeId });
+    const { data: packsData } = usePacks();
+    const productOptions = (productsForSelect?.data || []).map((p) => ({ value: p._id, label: p.name }));
+    const packOptions = (packsData?.data || []).map((p) => ({ value: p._id, label: p.name }));
+    const heroTargetType = Form.useWatch('targetType', heroForm);
+
+    useEffect(() => {
+        const h = heroData?.data;
+        if (h) {
+            heroForm.setFieldsValue({
+                title: h.title || '',
+                subtitle: h.subtitle || '',
+                ctaLabel: h.ctaLabel || 'Ver',
+                targetType: h.targetType || 'product',
+                targetId: h.targetId || undefined,
+            });
+        }
+    }, [heroData]);
+
+    const handleSaveHero = async () => {
+        try {
+            const values = await heroForm.validateFields();
+            const response = await Hero.save({ storeId: user.storeId, enabled: true, ...values });
+            if (response?.success) {
+                message.success('Portada guardada correctamente');
+                refetchHero();
+            } else {
+                message.warning(response?.message || 'No se pudo guardar la portada');
+            }
+        } catch (err) {
+            if (err?.errorFields) return; // validación
+            message.error(err.message || 'Error al guardar la portada');
+        }
+    };
 
     const filteredBanners = searchText
         ? banners.filter(b => b.name.toLowerCase().includes(searchText.toLowerCase()))
@@ -173,6 +215,52 @@ const BannersPage = () => {
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
                 <BackToAjustes />
+                {/* ── Portada / Hero del inicio ── */}
+                <Card title="Portada del inicio (Hero)" className="mb-6">
+                    <p className="text-gray-500 mb-4" style={{ marginTop: -8 }}>
+                        Es el bloque grande de arriba en el inicio de la tienda. Elige el texto y a qué producto o pack lleva el botón.
+                    </p>
+                    <Form form={heroForm} layout="vertical"
+                        onValuesChange={(changed) => { if ('targetType' in changed) heroForm.setFieldValue('targetId', undefined); }}>
+                        <Row gutter={16}>
+                            <Col xs={24} md={12}>
+                                <Form.Item name="title" label="Título" rules={[{ required: true, message: 'El título es obligatorio' }]}>
+                                    <Input placeholder="Ej: Nuestra promo estrella ⭐" />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} md={12}>
+                                <Form.Item name="ctaLabel" label="Texto del botón" rules={[{ required: true, message: 'El texto del botón es obligatorio' }]}>
+                                    <Input placeholder="Ej: Ve a la promo" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={24}>
+                                <Form.Item name="subtitle" label="Texto (subtítulo)">
+                                    <Input placeholder="Ej: 3x$5.000 · agua purificada a tu puerta" />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} md={8}>
+                                <Form.Item name="targetType" label="El botón lleva a" rules={[{ required: true, message: 'Elige el destino' }]}>
+                                    <Radio.Group>
+                                        <Radio value="product">Producto</Radio>
+                                        <Radio value="pack">Pack</Radio>
+                                    </Radio.Group>
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} md={16}>
+                                <Form.Item name="targetId" label={heroTargetType === 'pack' ? 'Pack' : 'Producto'} rules={[{ required: true, message: 'Elige a dónde lleva' }]}>
+                                    <Select
+                                        showSearch
+                                        optionFilterProp="label"
+                                        placeholder={heroTargetType === 'pack' ? 'Selecciona un pack' : 'Selecciona un producto'}
+                                        options={heroTargetType === 'pack' ? packOptions : productOptions}
+                                    />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                        <Button type="primary" onClick={handleSaveHero}>Guardar portada</Button>
+                    </Form>
+                </Card>
+
                 <div className="mb-6">
                     <Row gutter={[16, 16]}>
                         <Col span={24} className="flex items-center justify-between">
