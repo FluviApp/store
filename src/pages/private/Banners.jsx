@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Table, Button, Space, Input, Modal, Card, message, Empty, Row, Col, Upload, Form, Select, Radio
+    Table, Button, Space, Input, Modal, Card, message, Empty, Row, Col, Upload, Form, Select, Radio, Tabs
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -215,98 +215,108 @@ const BannersPage = () => {
             <Sidebar />
             <div className="flex-1 pt-16 px-4 lg:pt-8 lg:px-8 overflow-x-auto">
                 <BackToAjustes />
-                {/* ── Portada / Hero del inicio ── */}
-                <Card title="Portada del inicio (Hero)" className="mb-6">
-                    <p className="text-gray-500 mb-4" style={{ marginTop: -8 }}>
-                        Es el bloque grande de arriba en el inicio de la tienda. Elige el texto y a qué producto o pack lleva el botón.
-                    </p>
-                    <Form form={heroForm} layout="vertical"
-                        onValuesChange={(changed) => { if ('targetType' in changed) heroForm.setFieldValue('targetId', undefined); }}>
-                        <Row gutter={16}>
-                            <Col xs={24} md={12}>
-                                <Form.Item name="title" label="Título" rules={[{ required: true, message: 'El título es obligatorio' }]}>
-                                    <Input placeholder="Ej: Nuestra promo estrella ⭐" />
-                                </Form.Item>
-                            </Col>
-                            <Col xs={24} md={12}>
-                                <Form.Item name="ctaLabel" label="Texto del botón" rules={[{ required: true, message: 'El texto del botón es obligatorio' }]}>
-                                    <Input placeholder="Ej: Ve a la promo" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={24}>
-                                <Form.Item name="subtitle" label="Texto (subtítulo)">
-                                    <Input placeholder="Ej: 3x$5.000 · agua purificada a tu puerta" />
-                                </Form.Item>
-                            </Col>
-                            <Col xs={24} md={8}>
-                                <Form.Item name="targetType" label="El botón lleva a" rules={[{ required: true, message: 'Elige el destino' }]}>
-                                    <Radio.Group>
-                                        <Radio value="product">Producto</Radio>
-                                        <Radio value="pack">Pack</Radio>
-                                    </Radio.Group>
-                                </Form.Item>
-                            </Col>
-                            <Col xs={24} md={16}>
-                                <Form.Item name="targetId" label={heroTargetType === 'pack' ? 'Pack' : 'Producto'} rules={[{ required: true, message: 'Elige a dónde lleva' }]}>
-                                    <Select
-                                        showSearch
-                                        optionFilterProp="label"
-                                        placeholder={heroTargetType === 'pack' ? 'Selecciona un pack' : 'Selecciona un producto'}
-                                        options={heroTargetType === 'pack' ? packOptions : productOptions}
+                <h1 className="text-3xl font-bold text-gray-800 mb-4">Banners y portada</h1>
+
+                <Tabs
+                    defaultActiveKey="banners"
+                    items={[
+                        {
+                            key: 'banners',
+                            label: 'Banners',
+                            children: (
+                                <>
+                                    <div className="flex justify-end mb-4">
+                                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>Agregar Banner</Button>
+                                    </div>
+                                    <Search
+                                        placeholder="Buscar por nombre"
+                                        allowClear
+                                        enterButton={<SearchOutlined />}
+                                        size="large"
+                                        onSearch={setSearchText}
+                                        onChange={(e) => setSearchText(e.target.value)}
+                                        className="mb-4"
                                     />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                        <Button type="primary" onClick={handleSaveHero}>Guardar portada</Button>
-                    </Form>
-                </Card>
-
-                <div className="mb-6">
-                    <Row gutter={[16, 16]}>
-                        <Col span={24} className="flex items-center justify-between">
-                            <h1 className="text-3xl font-bold text-gray-800">Banners</h1>
-                        </Col>
-                        <Col span={24} className="flex flex-col md:flex-row md:justify-end gap-2">
-                            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>Agregar Banner</Button>
-                        </Col>
-                    </Row>
-                </div>
-
-                <Search
-                    placeholder="Buscar por nombre"
-                    allowClear
-                    enterButton={<SearchOutlined />}
-                    size="large"
-                    onSearch={setSearchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    className="mb-4"
-                />
-
-                {isMobile ? (
-                    filteredBanners.length > 0 ? (
-                        <div className="grid gap-4">
-                            {filteredBanners.map(banner => (
-                                <Card key={banner._id} title={banner.name} bordered>
-                                    <img src={banner.image} alt={banner.name} style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />
-                                    <p className="mt-2 text-blue-600">{banner.link}</p>
-                                    <Space wrap>
-                                        <Button icon={<EditOutlined />} onClick={() => openEditModal(banner)}>Editar</Button>
-                                        <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(banner)}>Eliminar</Button>
-                                    </Space>
+                                    {isMobile ? (
+                                        filteredBanners.length > 0 ? (
+                                            <div className="grid gap-4">
+                                                {filteredBanners.map(banner => (
+                                                    <Card key={banner._id} title={banner.name} bordered>
+                                                        <img src={banner.image} alt={banner.name} style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />
+                                                        <p className="mt-2 text-blue-600">{banner.link}</p>
+                                                        <Space wrap>
+                                                            <Button icon={<EditOutlined />} onClick={() => openEditModal(banner)}>Editar</Button>
+                                                            <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(banner)}>Eliminar</Button>
+                                                        </Space>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        ) : <Empty description="No hay banners" />
+                                    ) : (
+                                        <Table
+                                            dataSource={filteredBanners}
+                                            columns={columns}
+                                            rowKey="_id"
+                                            loading={isLoading}
+                                            pagination={{ pageSize: 5, position: ['bottomCenter'] }}
+                                            bordered
+                                        />
+                                    )}
+                                </>
+                            ),
+                        },
+                        {
+                            key: 'hero',
+                            label: 'Hero (portada)',
+                            children: (
+                                <Card bordered>
+                                    <p className="text-gray-500 mb-4">
+                                        Es el bloque grande de arriba en el inicio de la tienda. Elige el texto y a qué producto o pack lleva el botón. Si lo dejas vacío, no se muestra.
+                                    </p>
+                                    <Form form={heroForm} layout="vertical"
+                                        onValuesChange={(changed) => { if ('targetType' in changed) heroForm.setFieldValue('targetId', undefined); }}>
+                                        <Row gutter={16}>
+                                            <Col xs={24} md={12}>
+                                                <Form.Item name="title" label="Título" rules={[{ required: true, message: 'El título es obligatorio' }]}>
+                                                    <Input placeholder="Ej: Nuestra promo estrella ⭐" />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col xs={24} md={12}>
+                                                <Form.Item name="ctaLabel" label="Texto del botón" rules={[{ required: true, message: 'El texto del botón es obligatorio' }]}>
+                                                    <Input placeholder="Ej: Ve a la promo" />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={24}>
+                                                <Form.Item name="subtitle" label="Texto (subtítulo)">
+                                                    <Input placeholder="Ej: 3x$5.000 · agua purificada a tu puerta" />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col xs={24} md={8}>
+                                                <Form.Item name="targetType" label="El botón lleva a" rules={[{ required: true, message: 'Elige el destino' }]}>
+                                                    <Radio.Group>
+                                                        <Radio value="product">Producto</Radio>
+                                                        <Radio value="pack">Pack</Radio>
+                                                    </Radio.Group>
+                                                </Form.Item>
+                                            </Col>
+                                            <Col xs={24} md={16}>
+                                                <Form.Item name="targetId" label={heroTargetType === 'pack' ? 'Pack' : 'Producto'} rules={[{ required: true, message: 'Elige a dónde lleva' }]}>
+                                                    <Select
+                                                        showSearch
+                                                        optionFilterProp="label"
+                                                        placeholder={heroTargetType === 'pack' ? 'Selecciona un pack' : 'Selecciona un producto'}
+                                                        options={heroTargetType === 'pack' ? packOptions : productOptions}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+                                        <Button type="primary" onClick={handleSaveHero}>Guardar portada</Button>
+                                    </Form>
                                 </Card>
-                            ))}
-                        </div>
-                    ) : <Empty description="No hay banners" />
-                ) : (
-                    <Table
-                        dataSource={filteredBanners}
-                        columns={columns}
-                        rowKey="_id"
-                        loading={isLoading}
-                        pagination={{ pageSize: 5, position: ['bottomCenter'] }}
-                        bordered
-                    />
-                )}
+                            ),
+                        },
+                    ]}
+                />
 
                 <ModalCreateBanner
                     visible={isCreateModalVisible}
