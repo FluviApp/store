@@ -134,6 +134,12 @@ const Metricas = () => {
         };
     }, [localSalesData]);
 
+    // ¿Hay ventas en local reales? (para ocultar la sección si no hay datos)
+    const hasLocalData = useMemo(() => {
+        const arr = localSalesData?.data;
+        return Array.isArray(arr) && arr.some((item) => Number(item.totalSales) > 0);
+    }, [localSalesData]);
+
     // Configuración del gráfico de métodos de pago
     const paymentMethodConfig = useMemo(() => {
         if (!paymentData?.data) return null;
@@ -466,7 +472,8 @@ const Metricas = () => {
                     </Col>
                 </Row>
 
-                {/* Gráfico de Ventas en Local */}
+                {/* Gráfico de Ventas en Local — solo si hay datos (o mientras carga) */}
+                {(localSalesLoading || hasLocalData) && (
                 <Row gutter={[16, 16]} className="mb-6">
                     <Col xs={24}>
                         <Card title="Ventas en Local" extra={<LineChartOutlined />}>
@@ -510,6 +517,7 @@ const Metricas = () => {
                         </Card>
                     </Col>
                 </Row>
+                )}
 
                 {/* Gráfico de Pedidos por Día */}
                 <Row gutter={[16, 16]} className="mb-6">
