@@ -67,7 +67,7 @@ function formatChartBucketLabel(raw) {
 const Metricas = () => {
     const { user } = useAuth();
 
-    const [selectedPeriod, setSelectedPeriod] = useState('30d');
+    const [selectedPeriod, setSelectedPeriod] = useState('current_month');
     const [customRange, setCustomRange] = useState(null); // rango personalizado [dayjs, dayjs]
     const isCustom = typeof selectedPeriod === 'string' && selectedPeriod.startsWith('custom:');
 
