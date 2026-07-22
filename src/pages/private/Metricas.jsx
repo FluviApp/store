@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Card, Row, Col, Statistic, Select, Spin, Typography, Table, Tag, Divider, Button } from 'antd';
+import { Card, Row, Col, Statistic, Select, Spin, Typography, Table, Tag, Divider, Button, DatePicker } from 'antd';
 import { DollarOutlined, ShoppingCartOutlined, UserOutlined, TrophyOutlined, LineChartOutlined, PieChartOutlined, BarChartOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -67,6 +68,8 @@ const Metricas = () => {
     const { user } = useAuth();
 
     const [selectedPeriod, setSelectedPeriod] = useState('30d');
+    const [customRange, setCustomRange] = useState(null); // rango personalizado [dayjs, dayjs]
+    const isCustom = typeof selectedPeriod === 'string' && selectedPeriod.startsWith('custom:');
 
     const {
         useDashboardMetrics,
@@ -306,8 +309,19 @@ const Metricas = () => {
                     <div className="flex items-center gap-2">
                         <Text strong>Período:</Text>
                         <Select
-                            value={selectedPeriod}
-                            onChange={setSelectedPeriod}
+                            value={isCustom ? 'custom' : selectedPeriod}
+                            onChange={(v) => {
+                                if (v === 'custom') {
+                                    if (customRange?.[0] && customRange?.[1]) {
+                                        setSelectedPeriod(`custom:${customRange[0].format('YYYY-MM-DD')}:${customRange[1].format('YYYY-MM-DD')}`);
+                                    } else {
+                                        setSelectedPeriod('custom:');
+                                    }
+                                } else {
+                                    setCustomRange(null);
+                                    setSelectedPeriod(v);
+                                }
+                            }}
                             style={{ width: 260 }}
                             size="large"
                         >
@@ -319,7 +333,24 @@ const Metricas = () => {
                             <Option value="30d">Últimos 30 días</Option>
                             <Option value="90d">Últimos 90 días (por semana)</Option>
                             <Option value="1y">Último año (por mes)</Option>
+                            <Option value="custom">Rango personalizado…</Option>
                         </Select>
+                        {isCustom && (
+                            <DatePicker.RangePicker
+                                value={customRange}
+                                onChange={(range) => {
+                                    setCustomRange(range);
+                                    if (range?.[0] && range?.[1]) {
+                                        setSelectedPeriod(`custom:${range[0].format('YYYY-MM-DD')}:${range[1].format('YYYY-MM-DD')}`);
+                                    } else {
+                                        setSelectedPeriod('custom:');
+                                    }
+                                }}
+                                format="DD/MM/YYYY"
+                                allowClear
+                                size="large"
+                            />
+                        )}
                     </div>
                 </div>
 
