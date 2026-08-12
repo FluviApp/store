@@ -15,7 +15,9 @@ import {
     ShareAltOutlined,
     QrcodeOutlined,
     CopyOutlined,
+    DownloadOutlined,
 } from '@ant-design/icons';
+import { QRCodeCanvas } from 'qrcode.react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useStoreInfo from '../../hooks/useStoreInfo.js';
@@ -89,6 +91,10 @@ const Ajustes = () => {
     const { data: storeResp } = useStoreInfo();
     const storeCode = storeResp?.data?.code || '';
 
+    // El QR codifica un enlace con el código → sirve para el escáner dentro de Fluvi
+    // (extrae el code del ?code=) y a futuro para la cámara del teléfono.
+    const qrValue = storeCode ? `${QUICK_ORDER_BASE}/ingreso?code=${encodeURIComponent(storeCode)}` : '';
+
     const handleCopyCode = async () => {
         if (!storeCode) return;
         try {
@@ -97,6 +103,17 @@ const Ajustes = () => {
         } catch {
             message.info(storeCode);
         }
+    };
+
+    const handleDownloadQR = () => {
+        if (!storeCode) return;
+        const canvas = document.querySelector('#store-qr-wrap canvas');
+        if (!canvas) { message.error('No se pudo generar el QR'); return; }
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `qr-${storeCode}.png`;
+        a.click();
+        message.success('QR descargado 💧');
     };
 
     const quickOrderUrl = () => {
@@ -190,53 +207,79 @@ const Ajustes = () => {
                         flexWrap: 'wrap',
                     }}
                 >
-                    <span
+                    {/* QR */}
+                    <div
+                        id="store-qr-wrap"
                         style={{
-                            width: 56,
-                            height: 56,
+                            width: 168,
+                            height: 168,
                             borderRadius: 16,
-                            background: 'linear-gradient(135deg,#e6f2ff,#cfe6ff)',
+                            background: '#fff',
+                            border: '1px solid #e5edf7',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
                         }}
                     >
-                        <QrcodeOutlined style={{ fontSize: 28, color: '#1e90ff' }} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 200 }}>
+                        {storeCode ? (
+                            <QRCodeCanvas
+                                value={qrValue}
+                                size={512}
+                                marginSize={2}
+                                level="M"
+                                bgColor="#ffffff"
+                                fgColor="#0f2740"
+                                style={{ width: 150, height: 150 }}
+                            />
+                        ) : (
+                            <QrcodeOutlined style={{ fontSize: 40, color: '#cbd5e1' }} />
+                        )}
+                    </div>
+
+                    {/* Info + acciones */}
+                    <div style={{ flex: 1, minWidth: 240 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Código de tu tienda
                         </div>
                         <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2740', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: 1 }}>
                             {storeCode || '—'}
                         </div>
-                        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
-                            Compártelo con tus clientes: al ingresarlo (o escanear tu QR) en la app Fluvi entran directo a tu marca.
+                        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4, maxWidth: 440 }}>
+                            Comparte el QR o el código con tus clientes. Al escanearlo (o ingresarlo) en la app Fluvi, entran directo a tu marca — sin mezclarse con otras.
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+                            <button
+                                onClick={handleCopyCode}
+                                disabled={!storeCode}
+                                style={{
+                                    cursor: storeCode ? 'pointer' : 'not-allowed',
+                                    border: 'none', borderRadius: 12, padding: '11px 18px',
+                                    color: '#fff', fontWeight: 700, fontSize: 14,
+                                    background: 'linear-gradient(135deg,#1e90ff,#0d6ee2)',
+                                    boxShadow: '0 8px 20px rgba(30,144,255,0.35)',
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    opacity: storeCode ? 1 : 0.5,
+                                }}
+                            >
+                                <CopyOutlined /> Copiar código
+                            </button>
+                            <button
+                                onClick={handleDownloadQR}
+                                disabled={!storeCode}
+                                style={{
+                                    cursor: storeCode ? 'pointer' : 'not-allowed',
+                                    borderRadius: 12, padding: '11px 18px',
+                                    color: '#0d6ee2', fontWeight: 700, fontSize: 14,
+                                    background: '#eaf3ff', border: '1px solid #cfe6ff',
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    opacity: storeCode ? 1 : 0.5,
+                                }}
+                            >
+                                <DownloadOutlined /> Descargar QR
+                            </button>
                         </div>
                     </div>
-                    <button
-                        onClick={handleCopyCode}
-                        disabled={!storeCode}
-                        style={{
-                            cursor: storeCode ? 'pointer' : 'not-allowed',
-                            border: 'none',
-                            borderRadius: 14,
-                            padding: '12px 20px',
-                            color: '#fff',
-                            fontWeight: 700,
-                            fontSize: 15,
-                            background: 'linear-gradient(135deg,#1e90ff,#0d6ee2)',
-                            boxShadow: '0 8px 20px rgba(30,144,255,0.35)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            flexShrink: 0,
-                            opacity: storeCode ? 1 : 0.5,
-                        }}
-                    >
-                        <CopyOutlined /> Copiar
-                    </button>
                 </div>
 
                 <Row gutter={[20, 20]}>
