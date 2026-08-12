@@ -13,9 +13,12 @@ import {
     RightOutlined,
     ThunderboltFilled,
     ShareAltOutlined,
+    QrcodeOutlined,
+    CopyOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import useStoreInfo from '../../hooks/useStoreInfo.js';
 
 // ⚠️ Dominio público donde está desplegado el ecommerce (pedido rápido).
 // Cámbialo por tu dominio real (ej: https://fluvi.cl o el de Render).
@@ -83,23 +86,36 @@ const Ajustes = () => {
     const { user } = useAuth();
     const [hover, setHover] = React.useState(false);
 
+    const { data: storeResp } = useStoreInfo();
+    const storeCode = storeResp?.data?.code || '';
+
+    const handleCopyCode = async () => {
+        if (!storeCode) return;
+        try {
+            await navigator.clipboard.writeText(storeCode);
+            message.success('¡Código copiado! 💧');
+        } catch {
+            message.info(storeCode);
+        }
+    };
+
     const quickOrderUrl = () => {
         const slug = STORE_SLUGS[user?.storeId];
         return slug ? `${QUICK_ORDER_BASE}/${slug}` : `${QUICK_ORDER_BASE}/pedido/${user?.storeId || ''}`;
     };
 
     const handleShareQuickOrder = async () => {
+        // Copiamos SOLO la URL limpia. (Compartir con texto hacía que algunos
+        // destinos pegaran "texto + URL" juntos y rompieran el enlace.)
         const url = quickOrderUrl();
         try {
-            if (navigator.share) {
-                await navigator.share({ title: 'Pide tu agua', text: 'Haz tu pedido rápido aquí 💧', url });
-            } else {
-                await navigator.clipboard.writeText(url);
-                message.success('¡URL copiada! Ya puedes compartirla 💧');
-            }
+            await navigator.clipboard.writeText(url);
+            message.success('¡URL copiada! Ya puedes pegarla y compartirla 💧');
         } catch (err) {
-            try { await navigator.clipboard.writeText(url); message.success('¡URL copiada! 💧'); }
-            catch { message.info(url); }
+            try {
+                if (navigator.share) { await navigator.share({ url }); }
+                else { message.info(url); }
+            } catch { message.info(url); }
         }
     };
 
@@ -157,6 +173,71 @@ const Ajustes = () => {
                     </span>
                     <ShareAltOutlined style={{ fontSize: 26, color: '#fff', flexShrink: 0 }} />
                 </button>
+
+                {/* Código de tienda: los clientes lo ingresan (o escanean el QR) en la app Fluvi */}
+                <div
+                    style={{
+                        width: '100%',
+                        borderRadius: 20,
+                        padding: '22px 26px',
+                        marginBottom: 32,
+                        background: '#fff',
+                        border: '1px solid #e5edf7',
+                        boxShadow: '0 8px 28px rgba(30,144,255,0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 20,
+                        flexWrap: 'wrap',
+                    }}
+                >
+                    <span
+                        style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 16,
+                            background: 'linear-gradient(135deg,#e6f2ff,#cfe6ff)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <QrcodeOutlined style={{ fontSize: 28, color: '#1e90ff' }} />
+                    </span>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            Código de tu tienda
+                        </div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2740', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: 1 }}>
+                            {storeCode || '—'}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
+                            Compártelo con tus clientes: al ingresarlo (o escanear tu QR) en la app Fluvi entran directo a tu marca.
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleCopyCode}
+                        disabled={!storeCode}
+                        style={{
+                            cursor: storeCode ? 'pointer' : 'not-allowed',
+                            border: 'none',
+                            borderRadius: 14,
+                            padding: '12px 20px',
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: 15,
+                            background: 'linear-gradient(135deg,#1e90ff,#0d6ee2)',
+                            boxShadow: '0 8px 20px rgba(30,144,255,0.35)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            flexShrink: 0,
+                            opacity: storeCode ? 1 : 0.5,
+                        }}
+                    >
+                        <CopyOutlined /> Copiar
+                    </button>
+                </div>
 
                 <Row gutter={[20, 20]}>
                     {items.map((item) => (
