@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Radio, Button, message, Spin, Tag } from 'antd';
+import { Card, Radio, Button, message, Spin, Tag, Alert } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useStoreInfo from '../../hooks/useStoreInfo.js';
 import Stores from '../../services/Store.js';
+
+const HINTS = {
+    slots_chicos: 'Los horarios se marcan por zona: ve a la pestaña "Zonas" → edita una zona → activa el día y marca las horas (bloques de 1 hora).',
+    slots_grandes: '👉 Los tramos anchos se definen POR ZONA: guarda este modo, ve a la pestaña "Zonas" → edita una zona → activa el día y usa "Agregar bloque" (eliges hora de inicio y fin, ej. 10:00 a 12:00).',
+    sin_horario: 'No necesitas configurar horarios. El cliente podrá elegir un día (opcional) al hacer el pedido, y se le avisa cuando sale en camino.',
+};
 
 const OPCIONES = [
     {
@@ -95,10 +101,19 @@ const TipoHorariosTab = () => {
                 ))}
             </Radio.Group>
 
+            <Alert
+                type={mode === 'slots_grandes' ? 'warning' : 'info'}
+                showIcon
+                className="mt-4"
+                message={mode === 'slots_grandes' ? '¿Dónde defino los bloques amplios?' : '¿Dónde configuro los horarios?'}
+                description={HINTS[mode]}
+            />
+
             <div className="mt-5">
                 <Button type="primary" loading={saving} disabled={!dirty} onClick={onSave}>
                     Guardar tipo de horarios
                 </Button>
+                {dirty && <span className="ml-3 text-gray-400 text-sm">Guarda para aplicar el cambio</span>}
             </div>
         </div>
     );
