@@ -5,6 +5,7 @@ import { useMediaQuery } from 'react-responsive';
 import { GoogleMap, DrawingManager, Polygon, useJsApiLoader } from '@react-google-maps/api';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useZones from '../../hooks/useZones.js';
+import useStoreInfo from '../../hooks/useStoreInfo.js';
 import Zones from '../../services/Zones.js';
 import Comunas from '../../services/Comunas.js';
 import HorarioGridForm from '../../components/HorarioGridForm';
@@ -19,6 +20,8 @@ const comunasDeChile = [
 
 const ZonasTab = () => {
     const { user } = useAuth();
+    const { data: storeResp } = useStoreInfo();
+    const deliveryMode = storeResp?.data?.deliveryMode || 'slots_chicos';
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [form] = Form.useForm();
     const [editingZone, setEditingZone] = useState(null);
@@ -660,9 +663,10 @@ const ZonasTab = () => {
                         )}
 
                         {editingZone && (
-                            <Form.Item label="Horarios de Despacho">
+                            <Form.Item label={deliveryMode === 'slots_grandes' ? 'Bloques de Despacho' : 'Horarios de Despacho'}>
                                 <div className="max-h-[300px] overflow-y-auto rounded-lg p-4 border-t border-gray-200">
                                     <HorarioGridForm
+                                        deliveryMode={deliveryMode}
                                         initialSchedule={editingZone.schedule}
                                         onChange={(updatedSchedule) => setCustomSchedule(updatedSchedule)}
                                     />

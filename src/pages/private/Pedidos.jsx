@@ -16,6 +16,8 @@ import useProducts from '../../hooks/useProducts';
 import useProductsForSelect from '../../hooks/useProductsForSelect';
 import useAllDealers from '../../hooks/useAllDealers';
 import OrdersMap from '../../components/OrdersMap.jsx'
+import useStoreInfo from '../../hooks/useStoreInfo.js';
+import { oneHourBlock, normalizeHourBlock } from '../../utils/deliveryTime.js';
 const { Search } = Input;
 const { Option } = Select;
 const { Text } = Typography;
@@ -53,6 +55,8 @@ function daySectionLabel(dayKey) {
 
 const Pedidos = () => {
     const { user } = useAuth();
+    const { data: storeInfoResp } = useStoreInfo();
+    const deliveryMode = storeInfoResp?.data?.deliveryMode || 'slots_chicos';
     const isMobile = useMediaQuery({ maxWidth: 768 });
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [form] = Form.useForm();
@@ -257,11 +261,14 @@ const Pedidos = () => {
                     observations: selectedCustomer.observations || '',
                     notificationToken: selectedCustomer.notificationToken || '',
                 };
-                payload.deliverySchedule = {
-                    day: dayjs(values.deliveryDay).format('dddd').toLowerCase(),
-                    hour: values.deliveryHour,
-                };
-                payload.deliveryDate = dayjs(values.deliveryDay).startOf('day').toISOString();
+                // Horario según el modo. En sin_horario no se manda hora (día opcional).
+                const daySel = values.deliveryDay ? dayjs(values.deliveryDay).format('dddd').toLowerCase() : undefined;
+                payload.deliverySchedule = {};
+                if (daySel) payload.deliverySchedule.day = daySel;
+                if (deliveryMode !== 'sin_horario' && values.deliveryHour) {
+                    payload.deliverySchedule.hour = normalizeHourBlock(values.deliveryHour) || values.deliveryHour;
+                }
+                if (values.deliveryDay) payload.deliveryDate = dayjs(values.deliveryDay).startOf('day').toISOString();
                 if (values.dealerId) {
                     payload.deliveryPerson = {
                         id: values.dealerId,
@@ -382,11 +389,13 @@ const Pedidos = () => {
     };
 
 
-    const hourBlocks = Array.from({ length: 24 }, (_, i) => {
-        const hour = i % 12 === 0 ? 12 : i % 12;
-        const period = i < 12 ? 'AM' : 'PM';
-        return `${hour.toString().padStart(2, '0')}:00 ${period}`;
-    });
+    // Bloques según el modo de la tienda. Formato oficial: rango "HH:MM - HH:MM".
+    const hourBlocks = deliveryMode === 'slots_grandes'
+        ? Array.from({ length: 7 }, (_, i) => {
+            const s = 8 + i * 2;
+            return `${String(s).padStart(2, '0')}:00 - ${String(s + 2).padStart(2, '0')}:00`;
+        })
+        : Array.from({ length: 16 }, (_, i) => oneHourBlock(7 + i));
 
     const handleAddProduct = (product) => {
         const exists = selectedProducts.find(p => p.productId === product._id);
@@ -897,10 +906,11 @@ const Pedidos = () => {
                                     />
                                 </Form.Item>
                             </Col>
+                            {deliveryMode !== 'sin_horario' && (
                             <Col xs={24} md={12}>
                                 <Form.Item
                                     name="deliveryHour"
-                                    label="Horario de Entrega"
+                                    label={deliveryMode === 'slots_grandes' ? 'Bloque de Entrega' : 'Horario de Entrega'}
                                                 rules={[{ required: isDelivery, message: 'Selecciona un horario' }]}
                                 >
                                                 <Select placeholder="Selecciona un horario" disabled={!isDelivery}>
@@ -912,6 +922,7 @@ const Pedidos = () => {
                                     </Select>
                                 </Form.Item>
                             </Col>
+                            )}
                         </Row>
                                 );
                             }}

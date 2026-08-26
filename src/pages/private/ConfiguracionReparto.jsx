@@ -2,14 +2,18 @@ import React from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import BackToAjustes from '../../components/BackToAjustes.jsx';
 import { Tabs } from 'antd';
-import { CalendarOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { CalendarOutlined, EnvironmentOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import ZonasTab from './ZonasTab.jsx';
 import FeriadosTab from './FeriadosTab.jsx';
+import TipoHorariosTab from './TipoHorariosTab.jsx';
+
+const VALID_TABS = ['zonas', 'horarios', 'feriados'];
 
 const ConfiguracionReparto = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const activeTab = searchParams.get('tab') === 'feriados' ? 'feriados' : 'zonas';
+    const tabParam = searchParams.get('tab');
+    const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'zonas';
 
     const onTabChange = (key) => {
         if (key === 'zonas') searchParams.delete('tab');
@@ -43,6 +47,16 @@ const ConfiguracionReparto = () => {
                                 </span>
                             ),
                             children: <ZonasTab />,
+                        },
+                        {
+                            key: 'horarios',
+                            label: (
+                                <span className="flex items-center gap-2">
+                                    <ClockCircleOutlined />
+                                    Tipo de horarios
+                                </span>
+                            ),
+                            children: <TipoHorariosTab />,
                         },
                         {
                             key: 'feriados',

@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import dayjs from 'dayjs';
 import useOrders from '../../hooks/useOrders';
 import useStoreInfo from '../../hooks/useStoreInfo';
+import { oneHourBlock, normalizeHourBlock } from '../../utils/deliveryTime.js';
 import Orders from '../../services/Orders.js';
 import ClientMap from '../../components/ClientMap.jsx';
 import useClients from '../../hooks/useClients.js';
@@ -45,6 +46,7 @@ const HistorialVentas = () => {
     const { user } = useAuth();
     const { data: storeInfoResp } = useStoreInfo();
     const transferMessageTemplate = storeInfoResp?.data?.transferWhatsappMessage || '';
+    const deliveryMode = storeInfoResp?.data?.deliveryMode || 'slots_chicos';
     const isMobile = useMediaQuery({ maxWidth: 768 });
     const [searchText, setSearchText] = useState('');
     const [dateRange, setDateRange] = useState([]);
@@ -174,11 +176,13 @@ const HistorialVentas = () => {
     const deliveryTypeMap = { delivery: 'domicilio', local: 'local' };
 
     const hourBlocks = React.useMemo(() =>
-        Array.from({ length: 24 }, (_, i) => {
-            const h = i % 12 === 0 ? 12 : i % 12;
-            const period = i < 12 ? 'AM' : 'PM';
-            return `${h.toString().padStart(2, '0')}:00 ${period}`;
-        }), []
+        deliveryMode === 'slots_grandes'
+            ? Array.from({ length: 7 }, (_, i) => {
+                const s = 8 + i * 2;
+                return `${String(s).padStart(2, '0')}:00 - ${String(s + 2).padStart(2, '0')}:00`;
+            })
+            : Array.from({ length: 16 }, (_, i) => oneHourBlock(7 + i)),
+        [deliveryMode]
     );
 
     const dayTranslations = {
@@ -329,11 +333,16 @@ const HistorialVentas = () => {
                     observations: selectedCustomer.observations || '',
                     notificationToken: selectedCustomer.notificationToken || '',
                 },
-                deliverySchedule: {
-                    day: dayjs(values.deliveryDay).format('dddd').toLowerCase(),
-                    hour: values.deliveryHour,
-                },
-                deliveryDate: dayjs(values.deliveryDay).startOf('day').toISOString(),
+                deliverySchedule: (() => {
+                    const daySel = values.deliveryDay ? dayjs(values.deliveryDay).format('dddd').toLowerCase() : undefined;
+                    const s = {};
+                    if (daySel) s.day = daySel;
+                    if (deliveryMode !== 'sin_horario' && values.deliveryHour) {
+                        s.hour = normalizeHourBlock(values.deliveryHour) || values.deliveryHour;
+                    }
+                    return s;
+                })(),
+                deliveryDate: values.deliveryDay ? dayjs(values.deliveryDay).startOf('day').toISOString() : undefined,
                 deliveryPerson: values.dealerId
                     ? { id: values.dealerId, name: dealers.find(d => d._id === values.dealerId)?.name || '' }
                     : null,
@@ -1032,10 +1041,11 @@ const HistorialVentas = () => {
                                                 />
                                             </Form.Item>
                                         </Col>
+                                        {deliveryMode !== 'sin_horario' && (
                                         <Col xs={24} md={12}>
                                             <Form.Item
                                                 name="deliveryHour"
-                                                label="Horario de Entrega"
+                                                label={deliveryMode === 'slots_grandes' ? 'Bloque de Entrega' : 'Horario de Entrega'}
                                                 rules={[{ required: isDelivery, message: 'Selecciona un horario' }]}
                                             >
                                                 <Select placeholder="Selecciona un horario" disabled={!isDelivery}>
@@ -1043,6 +1053,7 @@ const HistorialVentas = () => {
                                                 </Select>
                                             </Form.Item>
                                         </Col>
+                                        )}
                                     </Row>
                                 );
                             }}
