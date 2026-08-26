@@ -63,7 +63,9 @@ const TipoHorariosTab = () => {
         return <div className="flex justify-center py-16"><Spin /></div>;
     }
 
-    const dirty = store?.deliveryMode && store.deliveryMode !== mode;
+    // Las tiendas existentes aún no tienen el campo guardado → el valor "actual" es el default.
+    const savedMode = store?.deliveryMode || 'slots_chicos';
+    const dirty = savedMode !== mode;
 
     return (
         <div className="max-w-3xl">
@@ -92,7 +94,7 @@ const TipoHorariosTab = () => {
                     >
                         <Radio value={op.value}>
                             <span className="font-semibold text-gray-800">{op.titulo}</span>
-                            {store?.deliveryMode === op.value && (
+                            {savedMode === op.value && (
                                 <Tag color="blue" className="ml-2">Actual</Tag>
                             )}
                             <div className="text-gray-500 text-sm mt-1">{op.desc}</div>
