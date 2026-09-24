@@ -48,6 +48,9 @@ const ClientesMapa = () => {
     const [dateRange, setDateRange] = useState(null);
     // Modo color (toggle): pinta por tiempo sin pedir
     const [colorOn, setColorOn] = useState(true);
+    // Qué colores mostrar (permite ver solo 1 o 2 colores a la vez)
+    const [visible, setVisible] = useState({ verde: true, azul: true, rojo: true, negro: true });
+    const toggleBucket = (k) => setVisible(v => ({ ...v, [k]: !v[k] }));
 
     const [selected, setSelected] = useState(null);
     const mapRef = useRef(null);
@@ -78,18 +81,21 @@ const ClientesMapa = () => {
     // Marcadores memoizados: solo se recalculan al cambiar los datos o el modo color,
     // NO al hacer clic (así el mapa no "se recarga" al abrir un pin).
     const markers = useMemo(
-        () => withCoords.map((c) => {
-            const b = colorOn ? bucketOf(c) : 'neutro';
-            return (
-                <Marker
-                    key={c._id}
-                    position={{ lat: c.lat, lng: c.lon }}
-                    icon={iconFor(BUCKETS[b].color)}
-                    onClick={() => setSelected(c)}
-                />
-            );
-        }),
-        [withCoords, colorOn]
+        () => withCoords
+            // Cuando el color está ON, mostrar solo los buckets activados (1, 2 o los que sea)
+            .filter((c) => !colorOn || visible[bucketOf(c)])
+            .map((c) => {
+                const b = colorOn ? bucketOf(c) : 'neutro';
+                return (
+                    <Marker
+                        key={c._id}
+                        position={{ lat: c.lat, lng: c.lon }}
+                        icon={iconFor(BUCKETS[b].color)}
+                        onClick={() => setSelected(c)}
+                    />
+                );
+            }),
+        [withCoords, colorOn, visible]
     );
 
     // Encuadrar el mapa a los pines cuando cambian los datos (no al hacer clic).
@@ -120,12 +126,31 @@ const ClientesMapa = () => {
                 </div>
 
                 {colorOn ? (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                        <Tag color="green">🟢 Este mes: {counts.verde}</Tag>
-                        <Tag color="blue">🔵 31–60d: {counts.azul}</Tag>
-                        <Tag color="red">🔴 Perdidos: {counts.rojo}</Tag>
-                        <Tag color="default">⚫ Nunca: {counts.negro}</Tag>
-                        {sinUbicacion > 0 && <Tag>📍 Sin ubicación: {sinUbicacion}</Tag>}
+                    <div className="mt-3">
+                        <div className="flex flex-wrap gap-2 items-center">
+                            {[
+                                { key: 'verde', color: 'green', emoji: '🟢', label: 'Este mes' },
+                                { key: 'azul', color: 'blue', emoji: '🔵', label: '31–60d' },
+                                { key: 'rojo', color: 'red', emoji: '🔴', label: 'Perdidos' },
+                                { key: 'negro', color: 'default', emoji: '⚫', label: 'Nunca' },
+                            ].map((l) => (
+                                <Tag
+                                    key={l.key}
+                                    color={visible[l.key] ? l.color : 'default'}
+                                    onClick={() => toggleBucket(l.key)}
+                                    style={{ cursor: 'pointer', opacity: visible[l.key] ? 1 : 0.35, userSelect: 'none' }}
+                                >
+                                    {l.emoji} {l.label}: {counts[l.key]}
+                                </Tag>
+                            ))}
+                            {sinUbicacion > 0 && <Tag>📍 Sin ubicación: {sinUbicacion}</Tag>}
+                            {!Object.values(visible).every(Boolean) && (
+                                <Button size="small" type="link" onClick={() => setVisible({ verde: true, azul: true, rojo: true, negro: true })}>
+                                    Ver todos
+                                </Button>
+                            )}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">Toca un color para mostrar/ocultar en el mapa.</div>
                     </div>
                 ) : (
                     <div className="mt-3 text-sm text-gray-500">
