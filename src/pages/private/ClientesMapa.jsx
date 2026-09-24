@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { GoogleMap, Marker, MarkerClusterer, InfoWindow } from '@react-google-maps/api';
-import { DatePicker, Select, Switch, Card, Spin, Empty, Button, Tag } from 'antd';
+import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { DatePicker, Switch, Card, Spin, Empty, Button, Tag } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import useFilteredClients from '../../hooks/useFilteredClients.js';
 
 const { RangePicker } = DatePicker;
 
-// Centro por defecto (Santiago) si no hay clientes con coordenadas
+// Centro inicial (Santiago). El encuadre real se hace con fitBounds.
 const DEFAULT_CENTER = { lat: -33.45, lng: -70.66 };
 
 // Umbrales de los buckets de color (días desde el último pedido)
@@ -30,56 +30,76 @@ const bucketOf = (c) => {
     return 'rojo';
 };
 
+const iconFor = (color) => (
+    window.google ? {
+        path: window.google.maps.SymbolPath.CIRCLE,
+        scale: 6.5,
+        fillColor: color,
+        fillOpacity: 0.95,
+        strokeColor: '#ffffff',
+        strokeWeight: 1.5,
+    } : undefined
+);
+
 const ClientesMapa = () => {
     const { filteredClients, isLoading, getFilteredClients } = useFilteredClients();
 
-    // Filtros
-    const [dateRange, setDateRange] = useState(null);      // [from, to] fecha de registro
-    const [inactivityDays, setInactivityDays] = useState(null); // null | 30 | 60 | 90
-    const [neverPurchased, setNeverPurchased] = useState(false);
-    // Modo color (toggle) — independiente de los filtros
+    // Único filtro: fecha de registro del usuario
+    const [dateRange, setDateRange] = useState(null);
+    // Modo color (toggle): pinta por tiempo sin pedir
     const [colorOn, setColorOn] = useState(true);
 
     const [selected, setSelected] = useState(null);
     const mapRef = useRef(null);
 
     const fetchClients = () => {
+        setSelected(null);
         getFilteredClients({
             registrationDateFrom: dateRange?.[0] ? dateRange[0].startOf('day').toISOString() : null,
             registrationDateTo: dateRange?.[1] ? dateRange[1].endOf('day').toISOString() : null,
-            inactivityDays: inactivityDays ?? null,
-            neverPurchased,
         });
     };
 
-    useEffect(() => { fetchClients(); /* eslint-disable-next-line */ }, [dateRange, inactivityDays, neverPurchased]);
+    useEffect(() => { fetchClients(); /* eslint-disable-next-line */ }, [dateRange]);
 
-    // Clientes con coordenadas válidas
+    // Clientes con coordenadas válidas (ref estable entre clics)
     const withCoords = useMemo(
         () => (filteredClients || []).filter(c => typeof c.lat === 'number' && typeof c.lon === 'number' && c.lat && c.lon),
         [filteredClients]
     );
     const sinUbicacion = (filteredClients || []).length - withCoords.length;
 
-    // Conteo por bucket
     const counts = useMemo(() => {
         const acc = { verde: 0, azul: 0, rojo: 0, negro: 0 };
         withCoords.forEach(c => { acc[bucketOf(c)]++; });
         return acc;
     }, [withCoords]);
 
-    const center = withCoords.length ? { lat: withCoords[0].lat, lng: withCoords[0].lon } : DEFAULT_CENTER;
-
-    const iconFor = (color) => (
-        window.google ? {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 7,
-            fillColor: color,
-            fillOpacity: 0.95,
-            strokeColor: '#ffffff',
-            strokeWeight: 1.5,
-        } : undefined
+    // Marcadores memoizados: solo se recalculan al cambiar los datos o el modo color,
+    // NO al hacer clic (así el mapa no "se recarga" al abrir un pin).
+    const markers = useMemo(
+        () => withCoords.map((c) => {
+            const b = colorOn ? bucketOf(c) : 'neutro';
+            return (
+                <Marker
+                    key={c._id}
+                    position={{ lat: c.lat, lng: c.lon }}
+                    icon={iconFor(BUCKETS[b].color)}
+                    onClick={() => setSelected(c)}
+                />
+            );
+        }),
+        [withCoords, colorOn]
     );
+
+    // Encuadrar el mapa a los pines cuando cambian los datos (no al hacer clic).
+    useEffect(() => {
+        if (mapRef.current && withCoords.length && window.google) {
+            const bounds = new window.google.maps.LatLngBounds();
+            withCoords.forEach(c => bounds.extend({ lat: c.lat, lng: c.lon }));
+            mapRef.current.fitBounds(bounds);
+        }
+    }, [withCoords]);
 
     const money = (n) => `$${Number(n || 0).toLocaleString('es-CL')}`;
 
@@ -89,27 +109,8 @@ const ClientesMapa = () => {
             <Card size="small" className="mb-4">
                 <div className="flex flex-wrap items-center gap-4">
                     <div>
-                        <div className="text-xs text-gray-500 mb-1">Fecha de registro</div>
+                        <div className="text-xs text-gray-500 mb-1">Fecha de registro del cliente</div>
                         <RangePicker value={dateRange} onChange={setDateRange} format="DD/MM/YYYY" allowClear />
-                    </div>
-                    <div>
-                        <div className="text-xs text-gray-500 mb-1">Sin pedir hace</div>
-                        <Select
-                            style={{ width: 160 }}
-                            value={inactivityDays}
-                            onChange={setInactivityDays}
-                            allowClear
-                            placeholder="Todos"
-                            options={[
-                                { value: 30, label: '+30 días' },
-                                { value: 60, label: '+60 días' },
-                                { value: 90, label: '+90 días' },
-                            ]}
-                        />
-                    </div>
-                    <div>
-                        <div className="text-xs text-gray-500 mb-1">Solo sin pedidos</div>
-                        <Switch checked={neverPurchased} onChange={setNeverPurchased} checkedChildren="Sí" unCheckedChildren="No" />
                     </div>
                     <div className="ml-auto flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-700">Colorear por actividad</span>
@@ -118,8 +119,7 @@ const ClientesMapa = () => {
                     </div>
                 </div>
 
-                {/* Leyenda / contadores (solo si el color está activo) */}
-                {colorOn && (
+                {colorOn ? (
                     <div className="flex flex-wrap gap-2 mt-3">
                         <Tag color="green">🟢 Este mes: {counts.verde}</Tag>
                         <Tag color="blue">🔵 31–60d: {counts.azul}</Tag>
@@ -127,8 +127,7 @@ const ClientesMapa = () => {
                         <Tag color="default">⚫ Nunca: {counts.negro}</Tag>
                         {sinUbicacion > 0 && <Tag>📍 Sin ubicación: {sinUbicacion}</Tag>}
                     </div>
-                )}
-                {!colorOn && (
+                ) : (
                     <div className="mt-3 text-sm text-gray-500">
                         {withCoords.length} clientes en el mapa{sinUbicacion > 0 ? ` · ${sinUbicacion} sin ubicación` : ''}
                     </div>
@@ -146,32 +145,25 @@ const ClientesMapa = () => {
                 ) : (
                     <GoogleMap
                         mapContainerStyle={{ width: '100%', height: '560px', borderRadius: 10 }}
-                        center={center}
+                        center={DEFAULT_CENTER}
                         zoom={11}
-                        onLoad={(map) => { mapRef.current = map; }}
+                        onLoad={(map) => {
+                            mapRef.current = map;
+                            if (withCoords.length && window.google) {
+                                const bounds = new window.google.maps.LatLngBounds();
+                                withCoords.forEach(c => bounds.extend({ lat: c.lat, lng: c.lon }));
+                                map.fitBounds(bounds);
+                            }
+                        }}
                         options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: true }}
                     >
-                        <MarkerClusterer>
-                            {(clusterer) =>
-                                withCoords.map((c) => {
-                                    const b = colorOn ? bucketOf(c) : 'neutro';
-                                    return (
-                                        <Marker
-                                            key={c._id}
-                                            position={{ lat: c.lat, lng: c.lon }}
-                                            clusterer={clusterer}
-                                            icon={iconFor(BUCKETS[b].color)}
-                                            onClick={() => setSelected(c)}
-                                        />
-                                    );
-                                })
-                            }
-                        </MarkerClusterer>
+                        {markers}
 
                         {selected && (
                             <InfoWindow
                                 position={{ lat: selected.lat, lng: selected.lon }}
                                 onCloseClick={() => setSelected(null)}
+                                options={{ disableAutoPan: true }}
                             >
                                 <div style={{ maxWidth: 240, lineHeight: 1.5 }}>
                                     <div style={{ fontWeight: 700, marginBottom: 2 }}>{selected.name || 'Cliente'}</div>
