@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
-import { DatePicker, Switch, Card, Spin, Empty, Button, Tag } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { DatePicker, Switch, Card, Spin, Empty, Button, Tag, Modal, Input, message as antdMessage } from 'antd';
+import { ReloadOutlined, MailOutlined, WhatsAppOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import useFilteredClients from '../../hooks/useFilteredClients.js';
+import Clients from '../../services/Clients.js';
+
+const { TextArea } = Input;
 
 const { RangePicker } = DatePicker;
 
@@ -55,6 +58,14 @@ const ClientesMapa = () => {
     const [selected, setSelected] = useState(null);
     const mapRef = useRef(null);
 
+    // Campaña de reactivación (email masivo + WhatsApp uno por uno)
+    const [campaignOpen, setCampaignOpen] = useState(false);
+    const [subject, setSubject] = useState('Un regalo de Fluvi 💧');
+    const [msgText, setMsgText] = useState('Hola {nombre} 👋 En Fluvi te damos un descuento especial: usa el código {codigo} en tu pedido. 💧 Pide en fluvi.cl');
+    const [code, setCode] = useState('');
+    const [sending, setSending] = useState(false);
+    const [showWa, setShowWa] = useState(false);
+
     const fetchClients = () => {
         setSelected(null);
         getFilteredClients({
@@ -77,6 +88,36 @@ const ClientesMapa = () => {
         withCoords.forEach(c => { acc[bucketOf(c)]++; });
         return acc;
     }, [withCoords]);
+
+    // Segmento objetivo para la campaña: TODOS los que cumplen el filtro de color
+    // (incluye los que no tienen coordenadas — para mensajear da igual la ubicación).
+    const targets = useMemo(
+        () => (filteredClients || []).filter(c => !colorOn || visible[bucketOf(c)]),
+        [filteredClients, colorOn, visible]
+    );
+    const targetsEmail = useMemo(() => targets.filter(t => t.email), [targets]);
+    const targetsPhone = useMemo(() => targets.filter(t => t.phone), [targets]);
+
+    const personalize = (text, c) => String(text || '')
+        .split('{nombre}').join(c.name || 'cliente')
+        .split('{codigo}').join(code || '');
+    const waLink = (c) => `https://wa.me/56${String(c.phone).replace(/\D/g, '').slice(-9)}?text=${encodeURIComponent(personalize(msgText, c))}`;
+
+    const sendEmails = async () => {
+        if (!targetsEmail.length) { antdMessage.warning('No hay clientes con email en el segmento'); return; }
+        setSending(true);
+        try {
+            const res = await Clients.sendCampaignEmail({
+                subject,
+                message: msgText.split('{codigo}').join(code || ''), // {nombre} lo reemplaza el backend por destinatario
+                recipients: targetsEmail.map(t => ({ email: t.email, name: t.name })),
+            });
+            if (res?.success) antdMessage.success(res.message || `Enviados: ${res.sent}`);
+            else antdMessage.error(res?.message || 'No se pudo enviar');
+        } catch (e) {
+            antdMessage.error(e?.response?.data?.message || e?.message || 'Error al enviar la campaña');
+        } finally { setSending(false); }
+    };
 
     // Marcadores memoizados: solo se recalculan al cambiar los datos o el modo color,
     // NO al hacer clic (así el mapa no "se recarga" al abrir un pin).
@@ -122,6 +163,9 @@ const ClientesMapa = () => {
                         <span className="text-sm font-medium text-gray-700">Colorear por actividad</span>
                         <Switch checked={colorOn} onChange={setColorOn} checkedChildren="ON" unCheckedChildren="OFF" />
                         <Button icon={<ReloadOutlined />} onClick={fetchClients} />
+                        <Button type="primary" icon={<MailOutlined />} onClick={() => setCampaignOpen(true)}>
+                            Mensaje a estos ({targets.length})
+                        </Button>
                     </div>
                 </div>
 
@@ -214,6 +258,55 @@ const ClientesMapa = () => {
                     </GoogleMap>
                 )}
             </div>
+
+            {/* --- Campaña de reactivación --- */}
+            <Modal
+                title={`Enviar mensaje a ${targets.length} clientes`}
+                open={campaignOpen}
+                onCancel={() => setCampaignOpen(false)}
+                footer={null}
+                width={620}
+            >
+                <div className="text-sm text-gray-500 mb-3">
+                    Segmento actual: <b>{targets.length}</b> clientes · {targetsEmail.length} con email · {targetsPhone.length} con teléfono.
+                </div>
+
+                <div className="mb-2">
+                    <div className="text-xs text-gray-500 mb-1">Asunto (para el email)</div>
+                    <Input value={subject} onChange={e => setSubject(e.target.value)} />
+                </div>
+                <div className="mb-2">
+                    <div className="text-xs text-gray-500 mb-1">Código de descuento</div>
+                    <Input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Ej: BIENVENIDO" />
+                    <div className="text-xs text-gray-400 mt-1">Debe existir en “Códigos de descuento” para que funcione al aplicarlo.</div>
+                </div>
+                <div className="mb-3">
+                    <div className="text-xs text-gray-500 mb-1">Mensaje (usa {'{nombre}'} y {'{codigo}'})</div>
+                    <TextArea rows={4} value={msgText} onChange={e => setMsgText(e.target.value)} />
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                    <Button type="primary" icon={<MailOutlined />} loading={sending} onClick={sendEmails} disabled={!targetsEmail.length}>
+                        Enviar email a {targetsEmail.length}
+                    </Button>
+                    <Button icon={<WhatsAppOutlined />} onClick={() => setShowWa(v => !v)} disabled={!targetsPhone.length}>
+                        {showWa ? 'Ocultar' : 'WhatsApp uno por uno'} ({targetsPhone.length})
+                    </Button>
+                </div>
+
+                {showWa && (
+                    <div style={{ maxHeight: 260, overflowY: 'auto', marginTop: 12, border: '1px solid #eee', borderRadius: 8 }}>
+                        {targetsPhone.map(c => (
+                            <div key={c._id} className="flex items-center justify-between" style={{ padding: '8px 12px', borderBottom: '1px solid #f2f2f2' }}>
+                                <span style={{ fontSize: 13 }}>{c.name || 'Cliente'} · {c.phone}</span>
+                                <a href={waLink(c)} target="_blank" rel="noopener noreferrer" style={{ color: '#12a150', fontWeight: 600 }}>
+                                    <WhatsAppOutlined /> Enviar
+                                </a>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };
