@@ -1,11 +1,12 @@
 // Clientes.jsx
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
-import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Switch, Tag } from 'antd';
+import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Switch, Tag, Tabs } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import { GoogleMap, Marker, Autocomplete } from '@react-google-maps/api';
 import ClientMap from '../../components/ClientMap.jsx';
+import ClientesMapa from './ClientesMapa.jsx';
 import useClients from '../../hooks/useClients.js';
 import Clients from '../../services/Clients.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -28,6 +29,7 @@ const Clientes = () => {
     const [isMayorista, setIsMayorista] = useState(false);
 
     const { data, isLoading, refetch } = useClients({ page: 1, limit: 5000 });
+    const [tab, setTab] = useState('lista');
     const clients = data?.data?.docs || [];
     const pageSize = 5;
     const isMobile = useMediaQuery({ maxWidth: 768 });
@@ -225,6 +227,14 @@ const Clientes = () => {
                     </Button>
                 </div>
 
+                <Tabs
+                    activeKey={tab}
+                    onChange={setTab}
+                    items={[{ key: 'lista', label: 'Lista' }, { key: 'mapa', label: '🗺️ Mapa' }]}
+                />
+
+                {tab === 'lista' && (
+                <>
                 <div className="mb-6">
                     <Search
                         placeholder="Buscar cliente..."
@@ -270,6 +280,10 @@ const Clientes = () => {
                         </div>
                     )}
                 </div>
+                </>
+                )}
+
+                {tab === 'mapa' && <ClientesMapa />}
 
                 <Modal
                     title={editingClient ? 'Editar Cliente' : 'Agregar Cliente'}
