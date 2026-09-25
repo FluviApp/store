@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Select, Radio } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, AimOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
-import { GoogleMap, DrawingManager, Polygon, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, DrawingManager, Polygon } from '@react-google-maps/api';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useZones from '../../hooks/useZones.js';
 import useStoreInfo from '../../hooks/useStoreInfo.js';
@@ -51,10 +51,17 @@ const ZonasTab = () => {
     const drawnPolygonRef = useRef(null);
     const mainMapRef = useRef(null);
 
-    const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        libraries: ['drawing'],
-    });
+    // Google Maps ya se carga globalmente en main.jsx (<LoadScript> con ['places','drawing']).
+    // Volver a cargarlo aquí con useJsApiLoader causaba un conflicto (librerías distintas) y
+    // el DrawingManager no se montaba → no se podían dibujar zonas. Usamos la carga global.
+    const [isLoaded, setIsLoaded] = useState(!!window.google?.maps);
+    useEffect(() => {
+        if (window.google?.maps) { setIsLoaded(true); return; }
+        const t = setInterval(() => {
+            if (window.google?.maps) { setIsLoaded(true); clearInterval(t); }
+        }, 200);
+        return () => clearInterval(t);
+    }, []);
 
     const { data, isLoading, refetch } = useZones({ page: 1, limit: 100 });
     const zonas = data?.data?.docs || [];
