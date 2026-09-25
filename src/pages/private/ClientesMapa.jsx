@@ -119,6 +119,31 @@ const ClientesMapa = () => {
         } finally { setSending(false); }
     };
 
+    // Eliminar un cliente (de a uno, con confirmación). No borra sus pedidos.
+    const handleDeleteClient = (c) => {
+        Modal.confirm({
+            title: '¿Eliminar cliente?',
+            content: `Se eliminará a "${c.name || 'este cliente'}" de forma permanente. Sus pedidos históricos NO se borran.`,
+            okText: 'Eliminar',
+            okType: 'danger',
+            cancelText: 'Cancelar',
+            onOk: async () => {
+                try {
+                    const res = await Clients.delete(c._id);
+                    if (res?.success) {
+                        antdMessage.success('Cliente eliminado');
+                        setSelected(null);
+                        fetchClients();
+                    } else {
+                        antdMessage.error(res?.message || 'No se pudo eliminar');
+                    }
+                } catch (e) {
+                    antdMessage.error(e?.response?.data?.message || e?.message || 'Error al eliminar');
+                }
+            },
+        });
+    };
+
     // Marcadores memoizados: solo se recalculan al cambiar los datos o el modo color,
     // NO al hacer clic (así el mapa no "se recarga" al abrir un pin).
     const markers = useMemo(
@@ -252,6 +277,14 @@ const ClientesMapa = () => {
                                             💬 WhatsApp {selected.phone}
                                         </a>
                                     )}
+                                    <div style={{ marginTop: 10, borderTop: '1px solid #eee', paddingTop: 8 }}>
+                                        <button
+                                            onClick={() => handleDeleteClient(selected)}
+                                            style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 13 }}
+                                        >
+                                            🗑️ Eliminar cliente
+                                        </button>
+                                    </div>
                                 </div>
                             </InfoWindow>
                         )}
