@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, Marker, InfoWindow, Polygon } from '@react-google-maps/api';
 import { DatePicker, Switch, Card, Spin, Empty, Button, Tag, Modal, Input, message as antdMessage } from 'antd';
 import { ReloadOutlined, MailOutlined, WhatsAppOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import useFilteredClients from '../../hooks/useFilteredClients.js';
+import useZones from '../../hooks/useZones.js';
 import Clients from '../../services/Clients.js';
 
 const { TextArea } = Input;
+
+// Colores para distinguir las zonas de reparto en el mapa
+const ZONE_COLORS = ['#7c3aed', '#0ea5e9', '#f59e0b', '#10b981', '#ec4899', '#ef4444', '#14b8a6', '#6366f1'];
 
 const { RangePicker } = DatePicker;
 
@@ -46,6 +50,22 @@ const iconFor = (color) => (
 
 const ClientesMapa = () => {
     const { filteredClients, isLoading, getFilteredClients } = useFilteredClients();
+    const { data: zonesResp } = useZones({ page: 1, limit: 100 });
+    const [showZones, setShowZones] = useState(false);
+
+    // Polígonos de las zonas de reparto (mismo criterio que ZonasTab)
+    const zonePolys = useMemo(() => {
+        const raw = zonesResp?.data?.docs || [];
+        return raw
+            .map(z => ({
+                id: z._id,
+                name: z.name || z.comuna || 'Zona',
+                path: (Array.isArray(z.polygon) ? z.polygon : [])
+                    .map(p => ({ lat: Number(p?.lat), lng: Number(p?.lng) }))
+                    .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng)),
+            }))
+            .filter(z => z.path.length >= 3);
+    }, [zonesResp]);
 
     // Único filtro: fecha de registro del usuario
     const [dateRange, setDateRange] = useState(null);
@@ -185,7 +205,9 @@ const ClientesMapa = () => {
                         <RangePicker value={dateRange} onChange={setDateRange} format="DD/MM/YYYY" allowClear />
                     </div>
                     <div className="ml-auto flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700">Colorear por actividad</span>
+                        <span className="text-sm font-medium text-gray-700">Zonas</span>
+                        <Switch checked={showZones} onChange={setShowZones} checkedChildren="ON" unCheckedChildren="OFF" />
+                        <span className="text-sm font-medium text-gray-700 ml-2">Colorear por actividad</span>
                         <Switch checked={colorOn} onChange={setColorOn} checkedChildren="ON" unCheckedChildren="OFF" />
                         <Button icon={<ReloadOutlined />} onClick={fetchClients} />
                         <Button type="primary" icon={<MailOutlined />} onClick={() => setCampaignOpen(true)}>
@@ -251,6 +273,22 @@ const ClientesMapa = () => {
                         }}
                         options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: true }}
                     >
+                        {showZones && zonePolys.map((z, i) => (
+                            <Polygon
+                                key={z.id}
+                                paths={z.path}
+                                options={{
+                                    strokeColor: ZONE_COLORS[i % ZONE_COLORS.length],
+                                    strokeOpacity: 0.9,
+                                    strokeWeight: 2,
+                                    fillColor: ZONE_COLORS[i % ZONE_COLORS.length],
+                                    fillOpacity: 0.10,
+                                    clickable: false, // que no bloquee el clic en los pines
+                                    zIndex: 1,
+                                }}
+                            />
+                        ))}
+
                         {markers}
 
                         {selected && (
