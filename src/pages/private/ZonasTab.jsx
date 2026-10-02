@@ -49,6 +49,8 @@ const ZonasTab = () => {
     const drawingManagerRef = useRef(null);
     const newPolygonRef = useRef(null);
     const drawnPolygonRef = useRef(null);
+    // Polígono rojo editable (al editar una zona). Leemos su contorno al guardar.
+    const editablePolygonRef = useRef(null);
     const mainMapRef = useRef(null);
     const modalMapRef = useRef(null);
     // Evita re-encuadrar el mapa principal en cada carga de tiles (si no, el
@@ -103,6 +105,18 @@ const ZonasTab = () => {
         () => zonasDeAreaParaMapa.filter((z) => !editingZone || z._id !== editingZone._id),
         [zonasDeAreaParaMapa, editingZone]
     );
+
+    // Lee el contorno actual de un polígono de Google Maps (tras arrastrar puntos).
+    const readPolygonPath = (polygon) => {
+        if (!polygon?.getPath) return [];
+        const path = polygon.getPath();
+        const coords = [];
+        for (let i = 0; i < path.getLength(); i++) {
+            const p = path.getAt(i);
+            coords.push({ lat: p.lat(), lng: p.lng() });
+        }
+        return coords;
+    };
 
     const centroidOf = (polygon) => {
         const pts = Array.isArray(polygon) ? polygon : [];
@@ -256,10 +270,16 @@ const ZonasTab = () => {
                 };
 
             } else if (tipoZona === 'area') {
+                // Al editar: si redibujó, usa el nuevo polígono; si no, lee el
+                // contorno EDITADO en vivo (vértices arrastrados) desde el ref,
+                // con respaldo a las coords originales.
+                const editedCoords = editablePolygonRef.current
+                    ? readPolygonPath(editablePolygonRef.current)
+                    : editPolygonCoords;
                 const rawCoords = editingZone
                     ? newPolygonCoords.length > 0
                         ? newPolygonCoords
-                        : editPolygonCoords
+                        : editedCoords
                     : newPolygonCoords;
 
                 const coords = rawCoords.map(({ lat, lng }) => ({ lat, lng }));
@@ -305,6 +325,8 @@ const ZonasTab = () => {
                         newPolygonRef.current.setMap(null);
                         newPolygonRef.current = null;
                     }
+
+                    editablePolygonRef.current = null;
 
                     setIsModalVisible(false);
                     setCustomSchedule(null); // ✅ Limpia el horario al cerrar
@@ -374,6 +396,8 @@ const ZonasTab = () => {
             newPolygonRef.current = null;
         }
 
+        editablePolygonRef.current = null;
+
         setIsModalVisible(false);
         setCustomSchedule(null); // ✅ También aquí para evitar arrastre
     };
@@ -406,16 +430,6 @@ const ZonasTab = () => {
             setEditPolygonCoords(editingZone.polygon || []);
         }
     }, [isModalVisible, editingZone, mapLoaded]);
-
-    useEffect(() => {
-        if (mapLoaded && editingZone?.type === 'area') {
-            console.log('useEffect ejecutado - mapLoaded:', mapLoaded, 'editingZone:', editingZone);
-            setTimeout(() => {
-                setEditPolygonCoords([...(editingZone.polygon || [])]);
-                console.log('Polygon coords seteados con delay forzado');
-            }, 1000); // Delay breve para garantizar que el mapa esté renderizado
-        }
-    }, [mapLoaded, editingZone]);
 
 
     useEffect(() => {
@@ -647,6 +661,14 @@ const ZonasTab = () => {
                                     {(newPolygonCoords.length || editPolygonCoords.length) ? 'Redibujar Área' : 'Dibujar Área'}
                                 </Button>
 
+                                {editingZone?.type === 'area' && newPolygonCoords.length === 0 && (
+                                    <p className="mb-2 text-sm text-gray-500">
+                                        Arrastra los <span className="font-semibold text-gray-600">puntos del borde</span> para ajustar la zona
+                                        (los puntos medios agregan vértices nuevos), o mueve toda el área arrastrándola.
+                                        Para rehacerla desde cero usa <span className="font-semibold text-gray-600">Redibujar Área</span>.
+                                    </p>
+                                )}
+
                                 {referenceZonesForModal.length > 0 && (
                                     <p className="mb-2 text-sm text-gray-500">
                                         Las zonas <span className="font-semibold text-gray-600">en gris</span> ya existen — dibuja la nueva en el espacio libre.
@@ -704,17 +726,20 @@ const ZonasTab = () => {
                                             ) : null;
                                         })}
 
-                                        {mapLoaded && editingZone?.type === 'area' && editPolygonCoords.length > 0 && (
+                                        {mapLoaded && editingZone?.type === 'area' && editPolygonCoords.length > 0 && newPolygonCoords.length === 0 && !drawingEnabled && (
                                             <Polygon
                                                 key={`original-${editingZone._id}`}
+                                                onLoad={(polygon) => { editablePolygonRef.current = polygon; }}
+                                                onUnmount={() => { editablePolygonRef.current = null; }}
                                                 paths={editPolygonCoords}
                                                 options={{
                                                     fillColor: '#FF0000',
                                                     fillOpacity: 0.3,
                                                     strokeColor: '#FF0000',
                                                     strokeWeight: 2,
-                                                    clickable: false,
-                                                    editable: false,
+                                                    clickable: true,
+                                                    editable: true,   // arrastra los vértices / puntos medios
+                                                    draggable: true,  // o mueve toda la zona
                                                     zIndex: 1,
                                                 }}
                                             />
