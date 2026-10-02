@@ -51,6 +51,9 @@ const ZonasTab = () => {
     const drawnPolygonRef = useRef(null);
     const mainMapRef = useRef(null);
     const modalMapRef = useRef(null);
+    // Evita re-encuadrar el mapa principal en cada carga de tiles (si no, el
+    // mapa "pelea" contra el usuario y no deja hacer zoom/arrastrar).
+    const mainMapFittedRef = useRef(false);
 
     // Google Maps ya se carga globalmente en main.jsx (<LoadScript> con ['places','drawing']).
     // Volver a cargarlo aquí con useJsApiLoader causaba un conflicto (librerías distintas) y
@@ -134,10 +137,14 @@ const ZonasTab = () => {
         const bounds = new window.google.maps.LatLngBounds();
         zonesToFit.forEach((z) => z.polygon.forEach((p) => bounds.extend(p)));
         map.fitBounds(bounds);
+        mainMapFittedRef.current = true;
     };
 
+    // Re-encuadra SOLO cuando cambia el conjunto de zonas (crear/editar/eliminar),
+    // no en cada interacción. Reseteamos la bandera para permitir un nuevo encuadre.
     useEffect(() => {
         if (!isLoaded) return;
+        mainMapFittedRef.current = false;
         if (!mainMapRef.current) return;
         // A veces el mapa todavía no está “listo” para ajustar bounds (layout/tiles).
         // Reintento rápido para garantizar que queden visibles.
@@ -465,19 +472,23 @@ const ZonasTab = () => {
                                     mapContainerStyle={{ width: '100%', height: '100%' }}
                                     center={{ lat: -33.45, lng: -70.6667 }}
                                     zoom={12}
+                                    options={{
+                                        zoomControl: true,
+                                        gestureHandling: 'greedy', // zoom con rueda sin tener que apretar Ctrl
+                                    }}
                                     onLoad={(map) => {
                                         mainMapRef.current = map;
-                                        // Asegura encuadre cuando el mapa ya esté listo.
-                                        fitMainMapToZones(map, zonasDeAreaParaMapa);
+                                        // Encuadre inicial cuando el mapa ya esté listo (una sola vez).
                                         if (window.google?.maps?.event?.addListenerOnce) {
                                             window.google.maps.event.addListenerOnce(map, 'idle', () => {
-                                                fitMainMapToZones(map, zonasDeAreaParaMapa);
+                                                if (!mainMapFittedRef.current) fitMainMapToZones(map, zonasDeAreaParaMapa);
                                             });
                                         }
                                     }}
                                     onTilesLoaded={() => {
                                         setMainMapLoaded(true);
-                                        fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
+                                        // Solo encuadra la PRIMERA vez; después el usuario controla zoom/arrastre.
+                                        if (!mainMapFittedRef.current) fitMainMapToZones(mainMapRef.current, zonasDeAreaParaMapa);
                                     }}
                                     onUnmount={() => {
                                         mainMapRef.current = null;
@@ -647,6 +658,10 @@ const ZonasTab = () => {
                                         mapContainerStyle={{ width: '100%', height: '100%' }}
                                         center={{ lat: -33.45, lng: -70.6667 }}
                                         zoom={14}
+                                        options={{
+                                            zoomControl: true,
+                                            gestureHandling: 'greedy',
+                                        }}
                                         onLoad={(map) => {
                                             modalMapRef.current = map;
                                             fitModalMap(map);
