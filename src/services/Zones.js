@@ -5,6 +5,8 @@ class ZonesService {
     create = (data) => instance.post('/store/zones', data);
     edit = (id, data) => instance.put(`/store/zones/${id}`, data);
     delete = (id) => instance.delete(`/store/zones/${id}`);
+    // Chequeo de seguridad: clientes que quedarían fuera de cobertura con el polígono propuesto
+    coverageImpact = (data) => instance.post('/store/zones/coverage-impact', data);
 }
 
 const Zones = new ZonesService();

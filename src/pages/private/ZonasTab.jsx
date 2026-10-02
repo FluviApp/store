@@ -300,44 +300,92 @@ const ZonasTab = () => {
 
             }
 
-            try {
-                payload.schedule = customSchedule || editingZone?.schedule;
+            const performSave = async () => {
+                try {
+                    payload.schedule = customSchedule || editingZone?.schedule;
 
-                const response = editingZone
-                    ? await Zones.edit(editingZone._id, payload)
-                    : await Zones.create(payload);
+                    const response = editingZone
+                        ? await Zones.edit(editingZone._id, payload)
+                        : await Zones.create(payload);
 
-                if (response?.success) {
-                    message.success(editingZone ? 'Zona actualizada correctamente' : 'Zona creada correctamente');
+                    if (response?.success) {
+                        message.success(editingZone ? 'Zona actualizada correctamente' : 'Zona creada correctamente');
 
-                    setNewPolygonCoords([]);
-                    setEditPolygonCoords([]);
-                    setDrawingEnabled(false);
-                    form.resetFields();
-                    setEditingZone(null);
+                        setNewPolygonCoords([]);
+                        setEditPolygonCoords([]);
+                        setDrawingEnabled(false);
+                        form.resetFields();
+                        setEditingZone(null);
 
-                    if (drawnPolygonRef.current) {
-                        drawnPolygonRef.current.setMap(null);
-                        drawnPolygonRef.current = null;
+                        if (drawnPolygonRef.current) {
+                            drawnPolygonRef.current.setMap(null);
+                            drawnPolygonRef.current = null;
+                        }
+
+                        if (newPolygonRef.current) {
+                            newPolygonRef.current.setMap(null);
+                            newPolygonRef.current = null;
+                        }
+
+                        editablePolygonRef.current = null;
+
+                        setIsModalVisible(false);
+                        setCustomSchedule(null); // ✅ Limpia el horario al cerrar
+                        refetch();
+                    } else {
+                        message.warning(response.message || 'No se pudo completar la acción');
                     }
-
-                    if (newPolygonRef.current) {
-                        newPolygonRef.current.setMap(null);
-                        newPolygonRef.current = null;
-                    }
-
-                    editablePolygonRef.current = null;
-
-                    setIsModalVisible(false);
-                    setCustomSchedule(null); // ✅ Limpia el horario al cerrar
-                    refetch();
-                } else {
-                    message.warning(response.message || 'No se pudo completar la acción');
+                } catch (error) {
+                    const errorMessage = error?.response?.data?.message || error.message || 'Error de servidor';
+                    message.error(errorMessage);
                 }
-            } catch (error) {
-                const errorMessage = error?.response?.data?.message || error.message || 'Error de servidor';
-                message.error(errorMessage);
+            };
+
+            // 🛡️ Red de seguridad (solo zonas de área): antes de guardar, verifica
+            // cuántos clientes quedarían FUERA de toda cobertura con esta forma.
+            if (tipoZona === 'area' && Array.isArray(payload.polygon) && payload.polygon.length >= 3) {
+                let impact = null;
+                try {
+                    const ci = await Zones.coverageImpact({
+                        storeId: user.storeId,
+                        zoneId: editingZone?._id || null,
+                        polygon: payload.polygon,
+                    });
+                    impact = ci?.data || null;
+                } catch (e) {
+                    console.error('❌ No se pudo verificar cobertura:', e);
+                    Modal.confirm({
+                        title: 'No se pudo verificar la cobertura',
+                        content: 'No pudimos comprobar si quedan clientes fuera de zona. ¿Guardar de todos modos?',
+                        okText: 'Guardar igual', okType: 'danger', cancelText: 'Cancelar',
+                        onOk: () => performSave(),
+                    });
+                    return;
+                }
+
+                const n = impact?.newlyUncoveredCount || 0;
+                if (n > 0) {
+                    const list = (impact.newlyUncovered || []).slice(0, 6)
+                        .map((c) => `• ${c.name}${c.address ? ` — ${c.address}` : ''}`).join('\n');
+                    const extra = n > 6 ? `\n…y ${n - 6} más.` : '';
+                    Modal.confirm({
+                        title: `⚠️ ${n} cliente${n > 1 ? 's' : ''} quedaría${n > 1 ? 'n' : ''} sin cobertura`,
+                        width: 520,
+                        content: (
+                            <div style={{ whiteSpace: 'pre-line' }}>
+                                {`Con esta forma, ${n} cliente${n > 1 ? 's' : ''} que hoy puede${n > 1 ? 'n' : ''} pedir quedaría${n > 1 ? 'n' : ''} FUERA de toda zona y no podrá${n > 1 ? 'n' : ''} comprar en la app.`}
+                                {list ? `\n\n${list}${extra}` : ''}
+                                {`\n\n¿Guardar de todos modos?`}
+                            </div>
+                        ),
+                        okText: 'Guardar de todos modos', okType: 'danger', cancelText: 'Revisar la zona',
+                        onOk: () => performSave(),
+                    });
+                    return; // no guardar hasta que confirmen
+                }
             }
+
+            await performSave();
         }).catch(() => {
             message.error('Por favor completá correctamente el formulario.');
         });
@@ -422,6 +470,28 @@ const ZonasTab = () => {
 
     const toggleDrawing = () => {
         setDrawingEnabled(true);
+    };
+
+    // Borra un vértice (clic derecho) del polígono editable, dejando mínimo 3 puntos.
+    const handleDeleteVertex = (vertexIndex) => {
+        const polygon = editablePolygonRef.current;
+        if (!polygon?.getPath) return;
+        const path = polygon.getPath();
+        if (path.getLength() <= 3) {
+            message.warning('La zona necesita al menos 3 puntos');
+            return;
+        }
+        path.removeAt(vertexIndex);
+    };
+
+    // Devuelve la zona a su forma original (deshace los cambios sin cerrar el modal).
+    const handleRestoreOriginal = () => {
+        const original = (editingZone?.polygon || []).map(({ lat, lng }) => ({ lat, lng }));
+        setNewPolygonCoords([]);
+        setDrawingEnabled(false);
+        if (drawnPolygonRef.current) { drawnPolygonRef.current.setMap(null); drawnPolygonRef.current = null; }
+        setEditPolygonCoords(original); // cambia la referencia → el polígono vuelve al original
+        message.info('Zona restaurada a su forma original');
     };
 
 
@@ -651,21 +721,29 @@ const ZonasTab = () => {
 
                         {tipoZona === 'area' && isLoaded && (
                             <div>
-                                <Button
-                                    type="dashed"
-                                    icon={<AimOutlined />}
-                                    onClick={toggleDrawing}
-                                    disabled={!isLoaded}
-                                    className="mb-4"
-                                >
-                                    {(newPolygonCoords.length || editPolygonCoords.length) ? 'Redibujar Área' : 'Dibujar Área'}
-                                </Button>
+                                <Space className="mb-4" wrap>
+                                    <Button
+                                        type="dashed"
+                                        icon={<AimOutlined />}
+                                        onClick={toggleDrawing}
+                                        disabled={!isLoaded}
+                                    >
+                                        {(newPolygonCoords.length || editPolygonCoords.length) ? 'Redibujar Área' : 'Dibujar Área'}
+                                    </Button>
+
+                                    {editingZone?.type === 'area' && (
+                                        <Button onClick={handleRestoreOriginal}>
+                                            Restaurar original
+                                        </Button>
+                                    )}
+                                </Space>
 
                                 {editingZone?.type === 'area' && newPolygonCoords.length === 0 && (
                                     <p className="mb-2 text-sm text-gray-500">
-                                        Arrastra los <span className="font-semibold text-gray-600">puntos del borde</span> para ajustar la zona
-                                        (los puntos medios agregan vértices nuevos), o mueve toda el área arrastrándola.
-                                        Para rehacerla desde cero usa <span className="font-semibold text-gray-600">Redibujar Área</span>.
+                                        Arrastra los <span className="font-semibold text-gray-600">puntos del borde</span> para ajustar la zona;
+                                        los <span className="font-semibold text-gray-600">puntos medios</span> (semitransparentes) agregan vértices nuevos,
+                                        y con <span className="font-semibold text-gray-600">clic derecho</span> sobre un punto lo borras.
+                                        La zona completa no se mueve. Para rehacerla desde cero usa <span className="font-semibold text-gray-600">Redibujar Área</span>.
                                     </p>
                                 )}
 
@@ -675,7 +753,7 @@ const ZonasTab = () => {
                                     </p>
                                 )}
 
-                                <div className="rounded-lg overflow-hidden mb-6" style={{ height: '400px' }}>
+                                <div className="rounded-lg overflow-hidden mb-6" style={{ height: '520px' }}>
                                     <GoogleMap
                                         mapContainerStyle={{ width: '100%', height: '100%' }}
                                         center={{ lat: -33.45, lng: -70.6667 }}
@@ -731,6 +809,7 @@ const ZonasTab = () => {
                                                 key={`original-${editingZone._id}`}
                                                 onLoad={(polygon) => { editablePolygonRef.current = polygon; }}
                                                 onUnmount={() => { editablePolygonRef.current = null; }}
+                                                onRightClick={(e) => { if (typeof e?.vertex === 'number') handleDeleteVertex(e.vertex); }}
                                                 paths={editPolygonCoords}
                                                 options={{
                                                     fillColor: '#FF0000',
@@ -738,8 +817,8 @@ const ZonasTab = () => {
                                                     strokeColor: '#FF0000',
                                                     strokeWeight: 2,
                                                     clickable: true,
-                                                    editable: true,   // arrastra los vértices / puntos medios
-                                                    draggable: true,  // o mueve toda la zona
+                                                    editable: true,    // arrastra los puntos del borde / puntos medios
+                                                    draggable: false,  // la zona NUNCA se mueve completa
                                                     zIndex: 1,
                                                 }}
                                             />
