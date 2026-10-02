@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Table, Button, Space, Input, Modal, Form, Card, message, Empty, Select, Radio } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, AimOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
-import { GoogleMap, DrawingManager, Polygon } from '@react-google-maps/api';
+import { GoogleMap, DrawingManager, Polygon, Marker } from '@react-google-maps/api';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useZones from '../../hooks/useZones.js';
 import useStoreInfo from '../../hooks/useStoreInfo.js';
@@ -50,6 +50,7 @@ const ZonasTab = () => {
     const newPolygonRef = useRef(null);
     const drawnPolygonRef = useRef(null);
     const mainMapRef = useRef(null);
+    const modalMapRef = useRef(null);
 
     // Google Maps ya se carga globalmente en main.jsx (<LoadScript> con ['places','drawing']).
     // Volver a cargarlo aquí con useJsApiLoader causaba un conflicto (librerías distintas) y
@@ -92,9 +93,37 @@ const ZonasTab = () => {
             .filter((z) => z.polygon.length >= 3);
     }, [zonas]);
 
+    // Zonas existentes a mostrar como REFERENCIA (gris) dentro del modal, para
+    // ubicar dónde dibujar una nueva. Al editar, se excluye la propia zona
+    // (que ya se dibuja en rojo).
+    const referenceZonesForModal = useMemo(
+        () => zonasDeAreaParaMapa.filter((z) => !editingZone || z._id !== editingZone._id),
+        [zonasDeAreaParaMapa, editingZone]
+    );
+
+    const centroidOf = (polygon) => {
+        const pts = Array.isArray(polygon) ? polygon : [];
+        if (pts.length === 0) return null;
+        const sum = pts.reduce((acc, p) => ({ lat: acc.lat + p.lat, lng: acc.lng + p.lng }), { lat: 0, lng: 0 });
+        return { lat: sum.lat / pts.length, lng: sum.lng / pts.length };
+    };
+
     const getZoneColor = (idx) => {
         const palette = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#f59e0b', '#0ea5e9'];
         return palette[idx % palette.length];
+    };
+
+    // Encuadra el mapa del modal para que se vean las zonas de referencia
+    // (+ el polígono en edición, si lo hay). Si no hay nada, deja el centro por defecto.
+    const fitModalMap = (map) => {
+        if (!map || !window.google?.maps?.LatLngBounds) return;
+        const bounds = new window.google.maps.LatLngBounds();
+        let any = false;
+        referenceZonesForModal.forEach((z) => z.polygon.forEach((p) => { bounds.extend(p); any = true; }));
+        (editPolygonCoords || []).forEach((p) => {
+            if (Number.isFinite(p?.lat) && Number.isFinite(p?.lng)) { bounds.extend(p); any = true; }
+        });
+        if (any) map.fitBounds(bounds);
     };
 
     const fitMainMapToZones = (map, zonesToFit) => {
@@ -390,6 +419,14 @@ const ZonasTab = () => {
         }
     }, [isModalVisible]);
 
+    // Re-encuadra el mapa del modal cuando ya cargó y cambian las zonas de
+    // referencia o el polígono en edición (este último se setea con delay).
+    useEffect(() => {
+        if (!isModalVisible || tipoZona !== 'area') return;
+        if (!mapLoaded || !modalMapRef.current) return;
+        fitModalMap(modalMapRef.current);
+    }, [isModalVisible, tipoZona, mapLoaded, referenceZonesForModal, editPolygonCoords]);
+
     return (
         <div>
             <div className="flex justify-end mb-6">
@@ -599,13 +636,59 @@ const ZonasTab = () => {
                                     {(newPolygonCoords.length || editPolygonCoords.length) ? 'Redibujar Área' : 'Dibujar Área'}
                                 </Button>
 
+                                {referenceZonesForModal.length > 0 && (
+                                    <p className="mb-2 text-sm text-gray-500">
+                                        Las zonas <span className="font-semibold text-gray-600">en gris</span> ya existen — dibuja la nueva en el espacio libre.
+                                    </p>
+                                )}
+
                                 <div className="rounded-lg overflow-hidden mb-6" style={{ height: '400px' }}>
                                     <GoogleMap
                                         mapContainerStyle={{ width: '100%', height: '100%' }}
                                         center={{ lat: -33.45, lng: -70.6667 }}
                                         zoom={14}
+                                        onLoad={(map) => {
+                                            modalMapRef.current = map;
+                                            fitModalMap(map);
+                                            if (window.google?.maps?.event?.addListenerOnce) {
+                                                window.google.maps.event.addListenerOnce(map, 'idle', () => fitModalMap(map));
+                                            }
+                                        }}
+                                        onUnmount={() => { modalMapRef.current = null; }}
                                         onTilesLoaded={() => setMapLoaded(true)}
                                     >
+                                        {/* Zonas existentes (referencia en gris) */}
+                                        {mapLoaded && referenceZonesForModal.map((zone) => (
+                                            <Polygon
+                                                key={`ref-${zone._id}`}
+                                                paths={zone.polygon}
+                                                options={{
+                                                    fillColor: '#9ca3af',
+                                                    fillOpacity: 0.12,
+                                                    strokeColor: '#6b7280',
+                                                    strokeOpacity: 0.9,
+                                                    strokeWeight: 1.5,
+                                                    clickable: false,
+                                                    editable: false,
+                                                    zIndex: 0,
+                                                }}
+                                            />
+                                        ))}
+
+                                        {/* Nombre de cada zona existente, en su centro */}
+                                        {mapLoaded && referenceZonesForModal.map((zone) => {
+                                            const c = centroidOf(zone.polygon);
+                                            return c ? (
+                                                <Marker
+                                                    key={`ref-lbl-${zone._id}`}
+                                                    position={c}
+                                                    clickable={false}
+                                                    icon={{ path: window.google.maps.SymbolPath.CIRCLE, scale: 0, fillOpacity: 0, strokeOpacity: 0 }}
+                                                    label={{ text: zone.name || 'Zona', color: '#4b5563', fontSize: '12px', fontWeight: '600' }}
+                                                />
+                                            ) : null;
+                                        })}
+
                                         {mapLoaded && editingZone?.type === 'area' && editPolygonCoords.length > 0 && (
                                             <Polygon
                                                 key={`original-${editingZone._id}`}
